@@ -46,6 +46,14 @@ export const del = (store, id) => withStore(store, "readwrite", (s) => s.delete(
 export const get = (store, id) => withStore(store, "readonly", (s) => s.get(id));
 export const getAll = (store) => withStore(store, "readonly", (s) => s.getAll());
 
+export async function setArchived(store, id, archived = true) {
+  const row = await get(store, id);
+  if (!row) throw new Error(`${store}にid=${id}のレコードが見つかりません`);
+  const updated = { ...row, archived, updatedAt: new Date().toISOString() };
+  await put(store, updated);
+  return updated;
+}
+
 export async function exportAll() {
   const data = {};
   for (const name of STORES) data[name] = await getAll(name);
