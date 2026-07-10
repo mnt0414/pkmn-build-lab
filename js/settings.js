@@ -3,6 +3,15 @@ import { CONFIG } from "./config.js";
 import { exportAll, importAll } from "./db.js";
 import { applyTheme } from "./ui-state.js";
 
+function downloadPayload(payload, filename) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 export async function renderSettings(el) {
   const c = CONFIG.links.credits;
   el.innerHTML = `
@@ -32,18 +41,16 @@ export async function renderSettings(el) {
 
   el.querySelector("#btn-export").addEventListener("click", async () => {
     const payload = await exportAll();
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `pkmn-build-lab-backup-${payload.exportedAt.slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadPayload(payload, `pkmn-build-lab-backup-${payload.exportedAt.slice(0, 10)}.json`);
   });
 
   el.querySelector("#input-import").addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     try {
+      const backup = await exportAll();
+      downloadPayload(backup, `pkmn-build-lab-before-import-${backup.exportedAt.slice(0, 10)}.json`);
+      if (!confirm("反映前バックアップを保存しました。差分を反映しますか？")) return;
       await importAll(JSON.parse(await file.text()));
       alert("インポートが完了しました");
       location.reload();
