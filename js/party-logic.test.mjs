@@ -12,6 +12,9 @@ import {
   isMoveUnconfirmed,
   computeDuplicateWarnings,
   checkFormatLegality,
+  searchBuilds,
+  deepCopyBuild,
+  copyBuildIntoTeam,
 } from "./party-logic.js";
 
 test("moveItem: 先頭要素を末尾へ移動する", () => {
@@ -244,4 +247,112 @@ test("computeDuplicateWarnings: 重複が無ければ空配列を返す", () => 
 
 test("checkFormatLegality: 常に空配列を返すスタブ", () => {
   assert.deepEqual(checkFormatLegality({}, {}), []);
+});
+
+const pokedexById = {
+  pikachu: { name: "Pikachu", nameJa: "ピカチュウ" },
+  raichu: { name: "Raichu", nameJa: "ライチュウ" },
+};
+
+test("searchBuilds: ニックネームの部分一致でヒットする", () => {
+  const builds = [
+    { id: "a", speciesId: "pikachu", nickname: "でんきネズミ", tags: [], archived: false },
+    { id: "b", speciesId: "raichu", nickname: "らいちゅー", tags: [], archived: false },
+  ];
+  const result = searchBuilds(builds, pokedexById, "でんき");
+  assert.deepEqual(result.map((b) => b.id), ["a"]);
+});
+
+test("searchBuilds: 種族名(nameJa)の部分一致でヒットする", () => {
+  const builds = [
+    { id: "a", speciesId: "pikachu", nickname: null, tags: [], archived: false },
+    { id: "b", speciesId: "raichu", nickname: null, tags: [], archived: false },
+  ];
+  const result = searchBuilds(builds, pokedexById, "ライチュウ");
+  assert.deepEqual(result.map((b) => b.id), ["b"]);
+});
+
+test("searchBuilds: タグの部分一致でヒットする", () => {
+  const builds = [
+    { id: "a", speciesId: "pikachu", nickname: null, tags: ["物理アタッカー"], archived: false },
+    { id: "b", speciesId: "raichu", nickname: null, tags: ["特殊アタッカー"], archived: false },
+  ];
+  const result = searchBuilds(builds, pokedexById, "物理");
+  assert.deepEqual(result.map((b) => b.id), ["a"]);
+});
+
+test("searchBuilds: 大文字小文字を区別しない", () => {
+  const builds = [{ id: "a", speciesId: "pikachu", nickname: "PIKA", tags: [], archived: false }];
+  const result = searchBuilds(builds, pokedexById, "pika");
+  assert.deepEqual(result.map((b) => b.id), ["a"]);
+});
+
+test("searchBuilds: includeArchived=false(デフォルト)ならアーカイブ済みbuildは除外する", () => {
+  const builds = [
+    { id: "a", speciesId: "pikachu", nickname: null, tags: [], archived: true },
+    { id: "b", speciesId: "pikachu", nickname: null, tags: [], archived: false },
+  ];
+  const result = searchBuilds(builds, pokedexById, "ピカチュウ");
+  assert.deepEqual(result.map((b) => b.id), ["b"]);
+});
+
+test("searchBuilds: includeArchived=trueならアーカイブ済みbuildも含める", () => {
+  const builds = [{ id: "a", speciesId: "pikachu", nickname: null, tags: [], archived: true }];
+  const result = searchBuilds(builds, pokedexById, "ピカチュウ", { includeArchived: true });
+  assert.deepEqual(result.map((b) => b.id), ["a"]);
+});
+
+test("searchBuilds: queryが空文字なら空配列を返す(全件表示はしない)", () => {
+  const builds = [{ id: "a", speciesId: "pikachu", nickname: null, tags: [], archived: false }];
+  assert.deepEqual(searchBuilds(builds, pokedexById, ""), []);
+});
+
+test("deepCopyBuild: 新しいIDを発行し、元オブジェクトと参照が異なる", () => {
+  const source = {
+    id: "src-1",
+    teamId: "team-a",
+    speciesId: "pikachu",
+    moves: ["thunderbolt", null, null, null],
+    tags: ["物理アタッカー"],
+  };
+  const clone = deepCopyBuild(source, "team-b");
+  assert.notEqual(clone.id, source.id);
+  assert.notEqual(clone, source);
+  assert.notEqual(clone.moves, source.moves); // ネストしたオブジェクト/配列も独立コピー
+  assert.deepEqual(clone.moves, source.moves);
+});
+
+test("deepCopyBuild: teamIdを付け替える", () => {
+  const source = { id: "src-1", teamId: "team-a", speciesId: "pikachu" };
+  const clone = deepCopyBuild(source, "team-b");
+  assert.equal(clone.teamId, "team-b");
+  assert.equal(source.teamId, "team-a"); // 元は変更されない
+});
+
+test("deepCopyBuild: コピー後にcloneを変更しても元buildへ影響しない", () => {
+  const source = { id: "src-1", teamId: "team-a", speciesId: "pikachu", tags: ["a"] };
+  const clone = deepCopyBuild(source, "team-b");
+  clone.tags.push("b");
+  clone.speciesId = "raichu";
+  assert.deepEqual(source.tags, ["a"]);
+  assert.equal(source.speciesId, "pikachu");
+});
+
+test("copyBuildIntoTeam: 選出6枠未満ならmemberへ配置する", () => {
+  const source = { id: "src-1", teamId: "team-a", speciesId: "pikachu" };
+  const targetTeam = { id: "team-b", selectedBuildIds: ["x"], poolBuildIds: [] };
+  const { clone, updatedTeam, placement } = copyBuildIntoTeam(source, targetTeam);
+  assert.equal(placement, "member");
+  assert.deepEqual(updatedTeam.selectedBuildIds, ["x", clone.id]);
+  assert.deepEqual(updatedTeam.poolBuildIds, []);
+  assert.equal(clone.teamId, "team-b");
+});
+
+test("copyBuildIntoTeam: 選出6枠が埋まっていればpoolへ配置する", () => {
+  const source = { id: "src-1", teamId: "team-a", speciesId: "pikachu" };
+  const targetTeam = { id: "team-b", selectedBuildIds: ["a", "b", "c", "d", "e", "f"], poolBuildIds: [] };
+  const { clone, updatedTeam, placement } = copyBuildIntoTeam(source, targetTeam);
+  assert.equal(placement, "pool");
+  assert.deepEqual(updatedTeam.selectedBuildIds, ["a", "b", "c", "d", "e", "f"]);
+  assert.deepEqual(updatedTeam.poolBuildIds, [clone.id]);
 });

@@ -212,3 +212,11 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, .4); }
 .warning-banner { border: 1px solid var(--warning); border-radius: var(--radius-s); padding: 8px 10px; font-size: 13px; margin-bottom: 10px; background: transparent; color: var(--text-1); }
 .warning-banner ul { margin: 4px 0 0; padding-left: 18px; }
 .warning-banner li { margin-bottom: 2px; }
+
+/* ---- 候補ポケモン検索・呼び出し(ディープコピー) (Phase 3.6) ---- */
+.dialog-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.dialog-tab { appearance: none; border: none; background: none; padding: 6px 12px; color: var(--text-2); font-size: 13px; cursor: pointer; }
+.dialog-tab.is-active { color: var(--primary); border-bottom: 2px solid var(--primary); font-weight: 600; }
+.search-result-row { display: flex; flex-direction: column; gap: 2px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-s); margin-bottom: 6px; cursor: pointer; }
+.search-result-row:hover { background: var(--surface-2); }
+.search-result-row__meta { font-size: 11px; color: var(--text-3); }

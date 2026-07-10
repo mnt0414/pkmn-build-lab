@@ -107,3 +107,36 @@ export function computeDuplicateWarnings(builds, team) {
 export function checkFormatLegality(build, team) {
   return [];
 }
+
+// 過去の構築で登録した調整済みポケモン(build)をニックネーム・種族名(nameJa優先)・タグで検索する(OR条件・大文字小文字区別なし)。
+// queryが空文字の場合は空配列を返す(全件表示はしない)。includeArchived=falseならアーカイブ済みbuildは除外する(3.6: 呼び出し検索のみの制約)。
+export function searchBuilds(builds, pokedexById, query, { includeArchived = false } = {}) {
+  const q = (query ?? "").trim().toLowerCase();
+  if (!q) return [];
+  return builds.filter((b) => {
+    if (!includeArchived && b.archived) return false;
+    const entry = pokedexById[b.speciesId];
+    const speciesName = entry ? entry.nameJa ?? entry.name : "";
+    const nickname = b.nickname ?? "";
+    const tags = b.tags ?? [];
+    if (speciesName.toLowerCase().includes(q)) return true;
+    if (nickname.toLowerCase().includes(q)) return true;
+    return tags.some((t) => (t ?? "").toLowerCase().includes(q));
+  });
+}
+
+// 他構築のbuildを完全に独立したコピーとして複製し、新IDを発行する。コピー後の編集は元のbuildへ影響しない。
+export function deepCopyBuild(sourceBuild, targetTeamId) {
+  const clone = structuredClone(sourceBuild);
+  clone.id = crypto.randomUUID();
+  clone.teamId = targetTeamId;
+  clone.createdAt = clone.updatedAt = new Date().toISOString();
+  return clone;
+}
+
+// deepCopyBuild + placeBuildInTeamのオーケストレーション。DB保存は行わない(呼び出し側でput("builds",clone)→put("teams",updatedTeam)を実行する)。
+export function copyBuildIntoTeam(sourceBuild, targetTeam) {
+  const clone = deepCopyBuild(sourceBuild, targetTeam.id);
+  const { team: updatedTeam, placement } = placeBuildInTeam(targetTeam, clone.id);
+  return { clone, updatedTeam, placement };
+}
