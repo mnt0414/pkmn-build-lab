@@ -7,6 +7,8 @@ import {
   moveItem,
   countBuildsForTeam,
   removeBuildIdFromTeam,
+  computeDuplicateWarnings,
+  checkFormatLegality,
 } from "./party-logic.js";
 import { openTeamModal } from "./party-team-modal.js";
 import { openPartyAddDialog } from "./party-add-dialog.js";
@@ -80,6 +82,30 @@ function memberSectionHtml(team, buildsById, pokedex) {
   return `<div class="grid">${cards}${emptySlots}</div>`;
 }
 
+function speciesDisplayName(speciesId, pokedex) {
+  const entry = pokedex[speciesId];
+  return entry ? entry.nameJa ?? entry.name : speciesId;
+}
+
+// 警告オブジェクト1件を日本語の理由文に変換する（対象ルール: 種族重複 / 同一持ち物）。
+function duplicateWarningMessage(warning, pokedex) {
+  if (warning.type === "species") {
+    return `同じ種族が複数登録されています: ${speciesDisplayName(warning.value, pokedex)}`;
+  }
+  return `同じ持ち物が複数登録されています: ${warning.value}`;
+}
+
+function warningBannerHtml(warnings, pokedex) {
+  if (warnings.length === 0) return "";
+  const items = warnings.map((w) => `<li>${escapeHtml(duplicateWarningMessage(w, pokedex))}</li>`).join("");
+  return `
+    <div class="warning-banner">
+      ⚠ 構築ルールに関する警告があります（登録・追加は拒否されません）
+      <ul>${items}</ul>
+    </div>
+  `;
+}
+
 function poolSectionHtml(team, buildsById, pokedex) {
   const poolBuilds = team.poolBuildIds.map((id) => buildsById.get(id)).filter(Boolean);
   const cards = poolBuilds.map((b) => pokemonCardHtml(b, pokedex)).join("");
@@ -119,6 +145,13 @@ export async function renderParty(el) {
   const teamBuilds = allBuilds.filter((b) => b.teamId === selectedTeam.id);
   const buildsById = new Map(teamBuilds.map((b) => [b.id, b]));
 
+  // 構築内自己整合性チェック(Phase 3.5): 選出6枠のみ対象、警告のみで登録・追加は拒否しない。
+  // checkFormatLegalityは現時点でルールデータが無いため常に空配列を返すスタブ(要件定義書5章)。
+  const warnings = [
+    ...computeDuplicateWarnings(teamBuilds, selectedTeam),
+    ...teamBuilds.flatMap((b) => checkFormatLegality(b, selectedTeam)),
+  ];
+
   const tabsHtml = teams
     .map(
       (t) =>
@@ -138,6 +171,7 @@ export async function renderParty(el) {
     </div>
     <section class="card">
       <h2>選出6匹</h2>
+      ${warningBannerHtml(warnings, pokedex)}
       <p class="placeholder">${escapeHtml(selectedTeam.name || "無題の構築")}（${selectedTeam.battleFormat === "double" ? "ダブル" : "シングル"} / ${escapeHtml(selectedTeam.regulation || "未設定")}） ${selectedTeam.selectedBuildIds.length}/6匹選出</p>
       ${memberSectionHtml(selectedTeam, buildsById, pokedex)}
     </section>

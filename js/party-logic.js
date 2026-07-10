@@ -70,3 +70,40 @@ export function isMoveUnconfirmed(moveId, learnsetIds) {
   if (!moveId) return false;
   return !(learnsetIds ?? []).includes(moveId);
 }
+
+// team.selectedBuildIds(構築メンバー6枠)内のbuildのみを対象に、種族重複・同一持ち物を検出する。
+// candidatePool(候補プール)は対象外(要件定義書3.1: プール内の重複登録は正常な運用のため警告しない)。
+// 戻り値: [{ type: "species" | "item", value, buildIds: [...] }, ...]
+export function computeDuplicateWarnings(builds, team) {
+  const memberIds = new Set(team.selectedBuildIds ?? []);
+  const memberBuilds = builds.filter((b) => memberIds.has(b.id));
+  const warnings = [];
+
+  const bySpecies = new Map();
+  for (const b of memberBuilds) {
+    if (!bySpecies.has(b.speciesId)) bySpecies.set(b.speciesId, []);
+    bySpecies.get(b.speciesId).push(b.id);
+  }
+  for (const [speciesId, ids] of bySpecies) {
+    if (ids.length > 1) warnings.push({ type: "species", value: speciesId, buildIds: ids });
+  }
+
+  const byItem = new Map();
+  for (const b of memberBuilds) {
+    if (!b.item) continue; // item未設定(null/空文字)はチェック対象外
+    if (!byItem.has(b.item)) byItem.set(b.item, []);
+    byItem.get(b.item).push(b.id);
+  }
+  for (const [item, ids] of byItem) {
+    if (ids.length > 1) warnings.push({ type: "item", value: item, buildIds: ids });
+  }
+
+  return warnings;
+}
+
+// レギュレーション別の使用可否・制限枠数チェック。
+// 現時点でルールデータ(Showdown由来の禁止リスト等)が存在しないため、常に空配列を返すスタブ。
+// TODO: data/patches配下にレギュレーション別ルールデータが用意され次第実装する(要件定義書5章)。
+export function checkFormatLegality(build, team) {
+  return [];
+}

@@ -10,6 +10,8 @@ import {
   placeBuildInTeam,
   removeBuildIdFromTeam,
   isMoveUnconfirmed,
+  computeDuplicateWarnings,
+  checkFormatLegality,
 } from "./party-logic.js";
 
 test("moveItem: 先頭要素を末尾へ移動する", () => {
@@ -177,4 +179,69 @@ test("isMoveUnconfirmed: 空文字はfalse", () => {
 
 test("isMoveUnconfirmed: learnsetIdsが空配列なら技ありはtrue", () => {
   assert.equal(isMoveUnconfirmed("tackle", []), true);
+});
+
+test("computeDuplicateWarnings: 選出6枠内で同じ種族が2件あれば種族重複警告を返す", () => {
+  const team = { selectedBuildIds: ["a", "b"], poolBuildIds: [] };
+  const builds = [
+    { id: "a", speciesId: "pikachu", item: null },
+    { id: "b", speciesId: "pikachu", item: null },
+  ];
+  const result = computeDuplicateWarnings(builds, team);
+  assert.deepEqual(result, [{ type: "species", value: "pikachu", buildIds: ["a", "b"] }]);
+});
+
+test("computeDuplicateWarnings: 選出6枠内で同じ持ち物が2件あれば同一持ち物警告を返す", () => {
+  const team = { selectedBuildIds: ["a", "b"], poolBuildIds: [] };
+  const builds = [
+    { id: "a", speciesId: "pikachu", item: "choice-scarf" },
+    { id: "b", speciesId: "raichu", item: "choice-scarf" },
+  ];
+  const result = computeDuplicateWarnings(builds, team);
+  assert.deepEqual(result, [{ type: "item", value: "choice-scarf", buildIds: ["a", "b"] }]);
+});
+
+test("computeDuplicateWarnings: 候補プール内の重複は警告しない(選出6枠外は対象外)", () => {
+  const team = { selectedBuildIds: ["a"], poolBuildIds: ["b", "c"] };
+  const builds = [
+    { id: "a", speciesId: "pikachu", item: null },
+    { id: "b", speciesId: "pikachu", item: "choice-scarf" },
+    { id: "c", speciesId: "pikachu", item: "choice-scarf" },
+  ];
+  const result = computeDuplicateWarnings(builds, team);
+  assert.deepEqual(result, []);
+});
+
+test("computeDuplicateWarnings: itemがnullのbuild同士は同一持ち物チェック対象外", () => {
+  const team = { selectedBuildIds: ["a", "b"], poolBuildIds: [] };
+  const builds = [
+    { id: "a", speciesId: "pikachu", item: null },
+    { id: "b", speciesId: "raichu", item: null },
+  ];
+  const result = computeDuplicateWarnings(builds, team);
+  assert.deepEqual(result, []);
+});
+
+test("computeDuplicateWarnings: itemが空文字のbuild同士も同一持ち物チェック対象外", () => {
+  const team = { selectedBuildIds: ["a", "b"], poolBuildIds: [] };
+  const builds = [
+    { id: "a", speciesId: "pikachu", item: "" },
+    { id: "b", speciesId: "raichu", item: "" },
+  ];
+  const result = computeDuplicateWarnings(builds, team);
+  assert.deepEqual(result, []);
+});
+
+test("computeDuplicateWarnings: 重複が無ければ空配列を返す", () => {
+  const team = { selectedBuildIds: ["a", "b"], poolBuildIds: [] };
+  const builds = [
+    { id: "a", speciesId: "pikachu", item: "choice-scarf" },
+    { id: "b", speciesId: "raichu", item: "life-orb" },
+  ];
+  const result = computeDuplicateWarnings(builds, team);
+  assert.deepEqual(result, []);
+});
+
+test("checkFormatLegality: 常に空配列を返すスタブ", () => {
+  assert.deepEqual(checkFormatLegality({}, {}), []);
 });

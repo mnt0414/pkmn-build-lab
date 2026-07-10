@@ -207,3 +207,8 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, .4); }
 .move-candidate-add .select, .move-candidate-add .input { flex: 1; min-width: 120px; }
 .field-warning { color: var(--warning); font-size: 12px; margin-top: 4px; }
 .badge-warning { display: inline-flex; align-items: center; color: var(--warning); border: 1px solid var(--warning); background: transparent; border-radius: 999px; padding: 2px 8px; font-size: 11px; }
+
+/* ---- 構築内自己整合性チェック警告 (Phase 3.5) ---- */
+.warning-banner { border: 1px solid var(--warning); border-radius: var(--radius-s); padding: 8px 10px; font-size: 13px; margin-bottom: 10px; background: transparent; color: var(--text-1); }
+.warning-banner ul { margin: 4px 0 0; padding-left: 18px; }
+.warning-banner li { margin-bottom: 2px; }
