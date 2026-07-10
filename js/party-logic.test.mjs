@@ -15,6 +15,7 @@ import {
   searchBuilds,
   deepCopyBuild,
   copyBuildIntoTeam,
+  duplicateTeam,
 } from "./party-logic.js";
 
 test("moveItem: 先頭要素を末尾へ移動する", () => {
@@ -355,4 +356,80 @@ test("copyBuildIntoTeam: 選出6枠が埋まっていればpoolへ配置する",
   assert.equal(placement, "pool");
   assert.deepEqual(updatedTeam.selectedBuildIds, ["a", "b", "c", "d", "e", "f"]);
   assert.deepEqual(updatedTeam.poolBuildIds, [clone.id]);
+});
+
+test("duplicateTeam: 新しいteam idを発行し、名前に「のコピー」を付与、archivedはfalseにリセットする", () => {
+  const sourceTeam = {
+    id: "team-a",
+    name: "エースチーム",
+    battleFormat: "single",
+    regulation: "レギュレーションH",
+    selectedBuildIds: ["b1", "b2"],
+    poolBuildIds: ["b3"],
+    speedCheckState: {},
+    memo: "",
+    archived: true,
+    sortOrder: 0,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  };
+  const sourceBuilds = [
+    { id: "b1", teamId: "team-a", speciesId: "pikachu" },
+    { id: "b2", teamId: "team-a", speciesId: "raichu" },
+    { id: "b3", teamId: "team-a", speciesId: "eevee" },
+  ];
+  const { newTeam, newBuilds } = duplicateTeam(sourceTeam, sourceBuilds, [sourceTeam]);
+
+  assert.notEqual(newTeam.id, sourceTeam.id);
+  assert.equal(newTeam.name, "エースチーム のコピー");
+  assert.equal(newTeam.archived, false);
+  assert.equal(newTeam.battleFormat, "single");
+  assert.equal(newTeam.regulation, "レギュレーションH");
+  assert.equal(newBuilds.length, 3);
+});
+
+test("duplicateTeam: 所属buildを全て新しいid・teamIdで複製し、内容(speciesId)は元と同じ", () => {
+  const sourceTeam = { id: "team-a", name: "T", selectedBuildIds: ["b1"], poolBuildIds: ["b2"], sortOrder: 0 };
+  const sourceBuilds = [
+    { id: "b1", teamId: "team-a", speciesId: "pikachu" },
+    { id: "b2", teamId: "team-a", speciesId: "raichu" },
+  ];
+  const { newTeam, newBuilds } = duplicateTeam(sourceTeam, sourceBuilds, [sourceTeam]);
+
+  const originalIds = new Set(sourceBuilds.map((b) => b.id));
+  for (const nb of newBuilds) {
+    assert.equal(originalIds.has(nb.id), false);
+    assert.equal(nb.teamId, newTeam.id);
+  }
+  assert.deepEqual(newBuilds.map((b) => b.speciesId).sort(), ["pikachu", "raichu"]);
+});
+
+test("duplicateTeam: selectedBuildIds/poolBuildIdsの並び順を保ったまま新build idに置き換える", () => {
+  const sourceTeam = { id: "team-a", name: "T", selectedBuildIds: ["b1", "b2"], poolBuildIds: ["b3"], sortOrder: 0 };
+  const sourceBuilds = [
+    { id: "b1", teamId: "team-a", speciesId: "a" },
+    { id: "b2", teamId: "team-a", speciesId: "b" },
+    { id: "b3", teamId: "team-a", speciesId: "c" },
+  ];
+  const { newTeam, newBuilds } = duplicateTeam(sourceTeam, sourceBuilds, [sourceTeam]);
+
+  const idToSpecies = new Map(newBuilds.map((b) => [b.id, b.speciesId]));
+  assert.deepEqual(newTeam.selectedBuildIds.map((id) => idToSpecies.get(id)), ["a", "b"]);
+  assert.deepEqual(newTeam.poolBuildIds.map((id) => idToSpecies.get(id)), ["c"]);
+});
+
+test("duplicateTeam: 元のteam・buildは変更されない(独立コピー)", () => {
+  const sourceTeam = { id: "team-a", name: "T", selectedBuildIds: ["b1"], poolBuildIds: [], sortOrder: 0 };
+  const sourceBuilds = [{ id: "b1", teamId: "team-a", speciesId: "pikachu", tags: ["a"] }];
+  duplicateTeam(sourceTeam, sourceBuilds, [sourceTeam]);
+  assert.deepEqual(sourceTeam.selectedBuildIds, ["b1"]);
+  assert.equal(sourceBuilds[0].id, "b1");
+  assert.deepEqual(sourceBuilds[0].tags, ["a"]);
+});
+
+test("duplicateTeam: sortOrderは既存team一覧のnextSortOrderに従う", () => {
+  const sourceTeam = { id: "team-a", name: "T", selectedBuildIds: [], poolBuildIds: [], sortOrder: 3 };
+  const otherTeam = { id: "team-b", sortOrder: 5 };
+  const { newTeam } = duplicateTeam(sourceTeam, [], [sourceTeam, otherTeam]);
+  assert.equal(newTeam.sortOrder, 6);
 });

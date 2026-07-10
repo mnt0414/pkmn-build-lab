@@ -2,7 +2,12 @@
 import { createTeam } from "./models.js";
 import { put, del, setArchived, getAll } from "./db.js";
 import { escapeHtml } from "./utils.js";
-import { cascadeDeleteTeamBuildIds, defaultFormatForNewTeam, nextSortOrder } from "./party-logic.js";
+import {
+  cascadeDeleteTeamBuildIds,
+  defaultFormatForNewTeam,
+  nextSortOrder,
+  duplicateTeam,
+} from "./party-logic.js";
 
 let dialogEl = null;
 
@@ -24,7 +29,7 @@ function formatOptionsHtml(selected) {
 
 // mode: "create" | "edit"
 // teams: sortOrder算出・対戦形式初期値算出に使う全team一覧（アーカイブ済み含む）
-export function openTeamModal({ mode, team = null, teams = [], onSaved, onDeleted }) {
+export function openTeamModal({ mode, team = null, teams = [], onSaved, onDeleted, onDuplicated }) {
   const dialog = ensureDialog();
   const isCreate = mode === "create";
   const initialFormat = isCreate ? defaultFormatForNewTeam(teams) : team.battleFormat;
@@ -49,6 +54,10 @@ export function openTeamModal({ mode, team = null, teams = [], onSaved, onDelete
           isCreate
             ? ""
             : `
+        <div class="field">
+          <label>複製</label>
+          <button type="button" class="btn" id="btn-duplicate">この構築を複製</button>
+        </div>
         <div class="field">
           <label>アーカイブ</label>
           <button type="button" class="btn" id="btn-archive">${team.archived ? "アーカイブを解除" : "アーカイブする"}</button>
@@ -92,6 +101,17 @@ export function openTeamModal({ mode, team = null, teams = [], onSaved, onDelete
   });
 
   if (!isCreate) {
+    dialog.querySelector("#btn-duplicate").addEventListener("click", async () => {
+      const allBuilds = await getAll("builds");
+      const memberIds = new Set([...team.selectedBuildIds, ...team.poolBuildIds]);
+      const sourceBuilds = allBuilds.filter((b) => memberIds.has(b.id));
+      const { newTeam, newBuilds } = duplicateTeam(team, sourceBuilds, teams);
+      for (const build of newBuilds) await put("builds", build);
+      await put("teams", newTeam);
+      dialog.close();
+      onDuplicated?.(newTeam);
+    });
+
     dialog.querySelector("#btn-archive").addEventListener("click", async () => {
       const updated = await setArchived("teams", team.id, !team.archived);
       dialog.close();

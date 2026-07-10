@@ -210,6 +210,10 @@ export async function renderParty(el) {
       teams: allTeams,
       onSaved: () => renderParty(el),
       onDeleted: () => renderParty(el),
+      onDuplicated: (newTeam) => {
+        saveUiState({ partyTeamId: newTeam.id });
+        renderParty(el);
+      },
     });
   });
 

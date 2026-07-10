@@ -140,3 +140,29 @@ export function copyBuildIntoTeam(sourceBuild, targetTeam) {
   const { team: updatedTeam, placement } = placeBuildInTeam(targetTeam, clone.id);
   return { clone, updatedTeam, placement };
 }
+
+// sourceTeamを所属build(選出6匹+候補プール全て)ごと複製する。新しいteamオブジェクトと複製されたbuild配列を返す(DB保存は呼び出し側が行う)。
+// sourceBuildsはsourceTeamのselectedBuildIds/poolBuildIds双方に含まれる全build(アーカイブ済み含む)を想定。
+export function duplicateTeam(sourceTeam, sourceBuilds, allTeams) {
+  const newTeamId = crypto.randomUUID();
+  const idMap = new Map();
+  const newBuilds = sourceBuilds.map((build) => {
+    const clone = deepCopyBuild(build, newTeamId);
+    idMap.set(build.id, clone.id);
+    return clone;
+  });
+  const remapIds = (ids) => ids.map((id) => idMap.get(id)).filter(Boolean);
+  const now = new Date().toISOString();
+  const newTeam = {
+    ...sourceTeam,
+    id: newTeamId,
+    name: `${sourceTeam.name} のコピー`,
+    selectedBuildIds: remapIds(sourceTeam.selectedBuildIds),
+    poolBuildIds: remapIds(sourceTeam.poolBuildIds),
+    archived: false,
+    sortOrder: nextSortOrder(allTeams),
+    createdAt: now,
+    updatedAt: now,
+  };
+  return { newTeam, newBuilds };
+}
