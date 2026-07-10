@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PKMN BUILD LAB.</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <h1 class="app-title">PKMN BUILD LAB.</h1>
+  <nav class="header-nav" aria-label="メイン">
+    <button class="nav-btn" data-page="party">パーティ編成</button>
+    <button class="nav-btn" data-page="calc">ダメージ計算</button>
+    <button class="nav-btn" data-page="enemies">仮想敵・構築</button>
+    <button class="nav-btn" data-page="settings">設定</button>
+  </nav>
+</header>
+
+<main id="app-main">
+  <section id="page-party" class="page" hidden></section>
+  <section id="page-calc" class="page" hidden></section>
+  <section id="page-enemies" class="page" hidden></section>
+  <section id="page-settings" class="page" hidden></section>
+</main>
+
+<nav class="botnav" aria-label="メイン（モバイル）">
+  <button class="nav-btn" data-page="party">編成</button>
+  <button class="nav-btn" data-page="calc">計算</button>
+  <button class="nav-btn" data-page="enemies">仮想敵</button>
+  <button class="nav-btn" data-page="settings">設定</button>
+</nav>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

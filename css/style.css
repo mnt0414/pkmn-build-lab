@@ -1,0 +1,126 @@
+/* =====================================================
+   PKMN BUILD LAB.  style.css
+   デザイントークン → ベース → レイアウト → コンポーネント
+   ライト: :root / ダーク: body.theme-dark
+   未定義トークンの使用禁止（追加時は必ずここに定義）
+   ===================================================== */
+
+/* ---- Design tokens ---- */
+:root {
+  --bg: #eef1f7;
+  --surface: #ffffff;
+  --surface-2: #f6f8fb;
+  --text-1: #1a2233;
+  --text-2: #4a5870;
+  --text-3: #7e94aa;
+  --border: #d4dce8;
+  --primary: #3a8ee6;
+  --primary-weak: rgba(58, 142, 230, 0.12);
+  --primary-contrast: #ffffff;
+  --danger: #e04040;
+  --success: #26b065;
+  --warning: #e8a020;
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --shadow-1: 0 1px 6px rgba(0, 0, 0, 0.07);
+  --nav-h: 56px;
+  --header-h: 52px;
+}
+
+body.theme-dark {
+  --bg: #0c0f14;
+  --surface: #11151c;
+  --surface-2: #141820;
+  --text-1: #e9eef4;
+  --text-2: #9aa7b4;
+  --text-3: #5d6b7a;
+  --border: #1f2630;
+  --primary: #3d9bff;
+  --primary-weak: rgba(61, 155, 255, 0.12);
+  --primary-contrast: #ffffff;
+  --danger: #ff3b4e;
+  --success: #3ad07a;
+  --warning: #f6c945;
+  --shadow-1: 0 1px 6px rgba(0, 0, 0, 0.18);
+}
+
+/* ---- Base ---- */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
+  min-height: 100dvh;
+}
+
+/* ---- Header ---- */
+.app-header {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; gap: 16px;
+  height: var(--header-h);
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.app-title { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: 0.04em; }
+
+/* ---- Nav ---- */
+.header-nav { display: none; gap: 4px; }
+.nav-btn {
+  appearance: none; border: none; background: none;
+  padding: 8px 12px; border-radius: var(--radius-s);
+  color: var(--text-2); font-size: 14px; cursor: pointer;
+}
+.nav-btn[aria-current="page"] {
+  background: var(--primary-weak); color: var(--primary); font-weight: 600;
+}
+
+.botnav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  /* iOS Safari・Android ChromeのブラウザUIに隠れる問題の対策 */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.botnav .nav-btn { height: var(--nav-h); border-radius: 0; font-size: 12px; }
+
+@media (min-width: 720px) {
+  .header-nav { display: flex; }
+  .botnav { display: none; }
+}
+
+/* ---- Main / Page ---- */
+#app-main {
+  max-width: 960px; margin: 0 auto;
+  padding: 16px 16px calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+}
+@media (min-width: 720px) { #app-main { padding-bottom: 24px; } }
+.page[hidden] { display: none; }
+
+/* ---- Components ---- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-1);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.card h2 { margin: 0 0 8px; font-size: 15px; }
+.placeholder { color: var(--text-3); font-size: 13px; }
+
+.btn {
+  appearance: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-1);
+  border-radius: var(--radius-s);
+  padding: 8px 14px; font-size: 14px;
+  min-height: 44px; /* タッチターゲット確保 */
+}
+.btn-primary {
+  background: var(--primary); border-color: var(--primary); color: var(--primary-contrast);
+}

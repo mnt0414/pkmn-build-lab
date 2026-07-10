@@ -1,0 +1,11 @@
+{
+  "name": "pkmn-build-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "data:fetch": "node scripts/data-fetch.mjs",
+    "data:build": "node scripts/data-build.mjs",
+    "data:verify": "node scripts/data-verify.mjs"
+  }
+}

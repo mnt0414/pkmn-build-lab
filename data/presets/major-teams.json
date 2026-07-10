@@ -1,0 +1,18 @@
+[
+  {
+    "id": "preset-2026-pjcs-elfliza",
+    "name": "エルフリザエッテ cona&Newcon版（PJCS2026優勝）",
+    "format": "double",
+    "regulation": "M-A",
+    "sourceUrl": "https://note.com/cona_5757/n/nacf363dcc136",
+    "pokemon": [
+      { "species": "フラエッテ" },
+      { "species": "リザードン" },
+      { "species": "エルフーン" },
+      { "species": "ガブリアス" },
+      { "species": "イダイトウ(オス)" },
+      { "species": "ドドゲザン" }
+    ],
+    "note": "調整値は出典記事の無料部分を参照して追記する（有料部分は転載しない）"
+  }
+]
