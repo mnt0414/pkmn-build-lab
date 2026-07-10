@@ -124,3 +124,37 @@ body {
 .btn-primary {
   background: var(--primary); border-color: var(--primary); color: var(--primary-contrast);
 }
+.btn-danger { border-color: var(--danger); color: var(--danger); }
+.btn-ghost { border-color: transparent; background: transparent; }
+
+/* ---- Team tabs / modal (Phase 3.1) ---- */
+.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--border); }
+.tab {
+  appearance: none; border: none; background: none;
+  padding: 8px 12px; color: var(--text-2); font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.tab.is-active {
+  background: var(--primary-weak); color: var(--primary); font-weight: 600;
+  border-radius: var(--radius-s) var(--radius-s) 0 0;
+}
+.tab-add { color: var(--text-3); font-weight: 700; }
+.team-toolbar { display: flex; gap: 8px; margin: 8px 0 16px; flex-wrap: wrap; }
+
+dialog.modal {
+  border: none; border-radius: var(--radius-m); box-shadow: var(--shadow-1);
+  padding: 0; width: calc(100% - 32px); max-width: 560px;
+  background: var(--surface); color: var(--text-1);
+}
+dialog.modal::backdrop { background: rgba(0, 0, 0, .4); }
+.modal-header { padding: 14px 16px; border-bottom: 1px solid var(--border); font-weight: 700; }
+.modal-body { padding: 16px; max-height: 70vh; overflow-y: auto; }
+.modal-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.field label { font-size: 12px; color: var(--text-2); }
+.input, .select, .textarea {
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  background: var(--surface); color: var(--text-1);
+  padding: 8px 10px; font-size: 14px; min-height: 44px;
+}
+.empty-state { text-align: center; padding: 32px 16px; color: var(--text-3); }

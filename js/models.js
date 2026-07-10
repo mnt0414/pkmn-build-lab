@@ -87,6 +87,7 @@ export function createTeam(partial = {}) {
     speedCheckState: partial.speedCheckState ?? {},
     memo: partial.memo ?? "",
     archived: partial.archived ?? false,
+    sortOrder: partial.sortOrder ?? Date.now(),
     createdAt: partial.createdAt ?? now,
     updatedAt: partial.updatedAt ?? now,
   };
