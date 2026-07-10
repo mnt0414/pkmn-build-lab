@@ -1,9 +1,10 @@
-// データモデル（build/team/enemyTeam）のファクトリ・実数値計算・EVsバリデーション。
-// 実数値(stats)はbuildに保存せず、種族値投入後にcalcAllStats等で都度導出する。
+// データモデル（build/team/enemyTeam）のファクトリ・実数値計算・ステータスポイントバリデーション。
+// ポケモンチャンピオンズ仕様: 努力値(EVs)は廃止し、ステータスポイント(SP・各0〜32、合計0〜66)を採用。
+// 個体値(ivs)は常に31固定・UI編集対象外。実数値(stats)はbuildに保存せず、都度calcAllStats等で導出する。
 
-export const EV_STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"];
-export const EV_MAX_PER_STAT = 252;
-export const EV_MAX_TOTAL = 510;
+export const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"];
+export const SP_MAX_PER_STAT = 32;
+export const SP_MAX_TOTAL = 66;
 
 export const NATURES = {
   "がんばりや": { plus: null, minus: null },
@@ -33,12 +34,9 @@ export const NATURES = {
   "てんねん": { plus: null, minus: null },
 };
 
-function defaultEvs(partial) {
-  return { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0, ...partial };
-}
-
-function defaultIvs(partial) {
-  return { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31, ...partial };
+// チャンピオンズ仕様では個体値は常に31固定・UI編集対象外。この関数の返り値は変更してはならない。
+function fixedIvs() {
+  return { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
 }
 
 function createEnemyPokemon(partial = {}) {
@@ -47,25 +45,27 @@ function createEnemyPokemon(partial = {}) {
     ability: partial.ability ?? "",
     item: partial.item ?? "",
     moves: partial.moves ?? ["", "", "", ""],
-    applyToOtherViews: partial.applyToOtherViews ?? false,
   };
 }
 
 export function createBuild(partial = {}) {
+  if (!partial.speciesId) throw new Error("speciesIdは必須です");
+  if (!partial.teamId) throw new Error("teamIdは必須です");
   const now = new Date().toISOString();
   return {
     id: partial.id ?? crypto.randomUUID(),
-    speciesId: partial.speciesId ?? "",
-    nickname: partial.nickname ?? "",
+    teamId: partial.teamId,
+    speciesId: partial.speciesId,
+    nickname: partial.nickname ?? null,
     types: partial.types ?? [], // TODO(種族データ投入後): 種族データから自動導出する
-    ability: partial.ability ?? "", // TODO(種族データ投入後): 候補リストを実装する
-    nature: partial.nature ?? "",
-    item: partial.item ?? "",
-    moves: partial.moves ?? ["", "", "", ""],
+    ability: partial.ability ?? null, // TODO(種族データ投入後): 候補リストを実装する
+    nature: partial.nature ?? null,
+    item: partial.item ?? null,
+    moves: partial.moves ?? [null, null, null, null],
     candidateMoves: partial.candidateMoves ?? [],
-    evs: defaultEvs(partial.evs),
-    ivs: defaultIvs(partial.ivs),
-    memo: partial.memo ?? "",
+    statPoints: partial.statPoints ?? null, // 各0〜32・合計0〜66。未入力時はnull
+    ivs: fixedIvs(), // 常に31固定（変更不可）
+    memo: partial.memo ?? null,
     weakAgainst: partial.weakAgainst ?? [],
     tags: partial.tags ?? [],
     teraType: partial.teraType ?? null, // 予約フィールド。UI非表示（レギュ解禁時に有効化）
@@ -80,6 +80,8 @@ export function createTeam(partial = {}) {
   return {
     id: partial.id ?? crypto.randomUUID(),
     name: partial.name ?? "",
+    battleFormat: partial.battleFormat ?? "single", // "single" | "double"
+    regulation: partial.regulation ?? "",
     selectedBuildIds: partial.selectedBuildIds ?? [],
     poolBuildIds: partial.poolBuildIds ?? [],
     speedCheckState: partial.speedCheckState ?? {},
@@ -96,49 +98,59 @@ export function createEnemyTeam(partial = {}) {
     id: partial.id ?? crypto.randomUUID(),
     name: partial.name ?? "",
     sourceType: partial.sourceType ?? "user",
+    battleFormat: partial.battleFormat ?? "single", // "single" | "double"
+    regulation: partial.regulation ?? "",
     sourceUrl: partial.sourceUrl ?? "",
-    pokemon: (partial.pokemon ?? []).map(createEnemyPokemon),
+    pokemon: (partial.pokemon ?? []).map(createEnemyPokemon), // teamId不要
     registeredAt: partial.registeredAt ?? now,
-    // 4.3には明記なしだが、db.setArchivedをenemyTeamsにも汎用適用するために追加（実装方針2.参照）
+    isReflected: partial.isReflected ?? true, // 構築単位の反映フラグ（preset/userとも初期値true）
+    // 4.3にarchivedの明記はないが、db.setArchivedの汎用適用に実害がないため残置（完了報告で明示）
     archived: partial.archived ?? false,
   };
 }
 
-export function validateEvs(evs) {
+// statPointsがnullの場合は未入力として許容する（保存を妨げない）。
+export function validateStatPoints(statPoints) {
+  if (statPoints == null) return { valid: true, errors: [] };
   const errors = [];
   let total = 0;
-  for (const key of EV_STAT_KEYS) {
-    const value = evs?.[key] ?? 0;
-    if (typeof value !== "number" || Number.isNaN(value) || value < 0 || value > EV_MAX_PER_STAT) {
-      errors.push(`${key}は0〜${EV_MAX_PER_STAT}の範囲で指定してください`);
+  for (const key of STAT_KEYS) {
+    const value = statPoints[key];
+    if (!Number.isInteger(value) || value < 0 || value > SP_MAX_PER_STAT) {
+      errors.push(`${key}は0〜${SP_MAX_PER_STAT}の整数で指定してください`);
+    } else {
+      total += value;
     }
-    total += value;
   }
-  if (total > EV_MAX_TOTAL) {
-    errors.push(`努力値の合計は${EV_MAX_TOTAL}以下にしてください（現在: ${total}）`);
+  if (total > SP_MAX_TOTAL) {
+    errors.push(`ステータスポイントの合計は${SP_MAX_TOTAL}以下にしてください（現在: ${total}）`);
   }
   return { valid: errors.length === 0, errors };
 }
 
-export function calcStat(base, iv, ev, level = 50, natureMod = 1, isHp = false) {
-  if (base == null || iv == null || ev == null) return null;
-  const inner = Math.floor(((base * 2 + iv + Math.floor(ev / 4)) * level) / 100);
-  if (isHp) return inner + level + 10;
-  return Math.floor((inner + 5) * natureMod);
+// チャンピオンズ仕様の実数値計算式（個体値は常に31固定）。
+// HP: floor(((2*base+31)*level)/100) + level + 10 + SP
+// HP以外・性格補正前: floor(((2*base+31)*level)/100) + 5 + SP
+// HP以外・性格補正後: floor(性格補正前 * 性格倍率)
+export function calcStat(base, sp, level = 50, natureMod = 1, isHp = false) {
+  if (base == null || sp == null) return null;
+  const inner = Math.floor(((base * 2 + 31) * level) / 100);
+  if (isHp) return inner + level + 10 + sp;
+  return Math.floor((inner + 5 + sp) * natureMod);
 }
 
-export function calcAllStats(baseStats, ivs, evs, nature, level = 50) {
+// statPointsがnull（未入力）の場合は実数値計算ができないためnullを返す。
+export function calcAllStats(baseStats, statPoints, nature, level = 50) {
+  if (statPoints == null) return null;
   const base = baseStats ?? {};
-  const iv = defaultIvs(ivs);
-  const ev = defaultEvs(evs);
   const { plus, minus } = NATURES[nature] ?? {};
   const natureMod = (stat) => (stat === plus ? 1.1 : stat === minus ? 0.9 : 1.0);
   return {
-    hp: calcStat(base.hp, iv.hp, ev.hp, level, 1, true),
-    atk: calcStat(base.atk, iv.atk, ev.atk, level, natureMod("atk")),
-    def: calcStat(base.def, iv.def, ev.def, level, natureMod("def")),
-    spa: calcStat(base.spa, iv.spa, ev.spa, level, natureMod("spa")),
-    spd: calcStat(base.spd, iv.spd, ev.spd, level, natureMod("spd")),
-    spe: calcStat(base.spe, iv.spe, ev.spe, level, natureMod("spe")),
+    hp: calcStat(base.hp, statPoints.hp, level, 1, true),
+    atk: calcStat(base.atk, statPoints.atk, level, natureMod("atk")),
+    def: calcStat(base.def, statPoints.def, level, natureMod("def")),
+    spa: calcStat(base.spa, statPoints.spa, level, natureMod("spa")),
+    spd: calcStat(base.spd, statPoints.spd, level, natureMod("spd")),
+    spe: calcStat(base.spe, statPoints.spe, level, natureMod("spe")),
   };
 }

@@ -1,6 +1,6 @@
 // 仮想敵・メジャー構築画面（Phase 4で本実装）
 import { CONFIG } from "./config.js";
-import { escapeHtml } from "./utils.js";
+import { escapeHtml, safeHttpsUrl } from "./utils.js";
 
 export async function renderEnemies(el) {
   let presets = [];
@@ -18,8 +18,8 @@ export async function renderEnemies(el) {
     .map(
       (t) => `
       <li>
-        <strong>${escapeHtml(t.name)}</strong>（${(t.pokemon || []).map((p) => escapeHtml(p.species)).join(" / ")}）
-        <a href="${escapeHtml(t.sourceUrl)}" target="_blank" rel="noopener">出典記事</a>
+        <strong>${escapeHtml(t.name)}</strong>（${(Array.isArray(t.pokemon) ? t.pokemon : []).map((p) => escapeHtml(p.species)).join(" / ")}）
+        ${safeHttpsUrl(t.sourceUrl) ? `<a href="${escapeHtml(safeHttpsUrl(t.sourceUrl))}" target="_blank" rel="noopener">出典記事</a>` : ""}
       </li>`
     )
     .join("");

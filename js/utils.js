@@ -8,3 +8,13 @@ export function escapeHtml(str) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 }
+
+// 外部リンクはHTTPSのみ許可。無効値・javascript:・data:等はnullにする。
+export function safeHttpsUrl(value) {
+  try {
+    const url = new URL(String(value));
+    return url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
