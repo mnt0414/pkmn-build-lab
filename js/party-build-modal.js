@@ -253,8 +253,8 @@ export function openBuildEditModal(build, speciesData) {
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-ghost" id="btn-cancel">キャンセル</button>
-            <button type="submit" class="btn btn-primary" id="btn-save">保存</button>
+            <button type="button" class="btn btn-ghost" id="build-btn-cancel">キャンセル</button>
+            <button type="submit" class="btn btn-primary" id="build-btn-save">保存</button>
           </div>
         </form>
       `;
@@ -416,7 +416,7 @@ export function openBuildEditModal(build, speciesData) {
         const stats = statPoints ? calcAllStats(speciesData?.baseStats, statPoints, nature) : null;
         dialog.querySelector("#stats-preview").innerHTML = statsPreviewHtml(stats);
 
-        dialog.querySelector("#btn-save").disabled = errors.length > 0;
+        dialog.querySelector("#build-btn-save").disabled = errors.length > 0;
       }
 
       STAT_KEYS.forEach((key) => {
@@ -463,7 +463,7 @@ export function openBuildEditModal(build, speciesData) {
         return confirm("編集内容を保存せずに閉じます。よろしいですか？");
       }
 
-      dialog.querySelector("#btn-cancel").addEventListener("click", () => {
+      dialog.querySelector("#build-btn-cancel").addEventListener("click", () => {
         if (!confirmDiscardIfDirty()) return;
         dialog.close();
       });

@@ -60,8 +60,8 @@ export function openTeamModal({ mode, team = null, teams = [], onSaved, onDelete
         }
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-ghost" id="btn-cancel">キャンセル</button>
-        <button type="submit" class="btn btn-primary" id="btn-save">保存</button>
+        <button type="button" class="btn btn-ghost" id="team-btn-cancel">キャンセル</button>
+        <button type="submit" class="btn btn-primary" id="team-btn-save">保存</button>
       </div>
     </form>
   `;
@@ -71,7 +71,7 @@ export function openTeamModal({ mode, team = null, teams = [], onSaved, onDelete
   const formatSelect = dialog.querySelector("#team-format");
   const regulationInput = dialog.querySelector("#team-regulation");
 
-  dialog.querySelector("#btn-cancel").addEventListener("click", () => dialog.close());
+  dialog.querySelector("#team-btn-cancel").addEventListener("click", () => dialog.close());
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

@@ -58,13 +58,13 @@ export function openPartyAddDialog({ team, onSaved }) {
             <button type="button" class="btn" id="btn-pick-species">種族を検索して選択</button>
           </div>
           <div class="field">
-            <label for="build-nickname">ニックネーム（任意）</label>
-            <input class="input" id="build-nickname" type="text" maxlength="12" placeholder="未入力可">
+            <label for="add-build-nickname">ニックネーム（任意）</label>
+            <input class="input" id="add-build-nickname" type="text" maxlength="12" placeholder="未入力可">
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-ghost" id="btn-cancel">キャンセル</button>
-          <button type="submit" class="btn btn-primary" id="btn-save" disabled>追加</button>
+          <button type="button" class="btn btn-ghost" id="add-btn-cancel">キャンセル</button>
+          <button type="submit" class="btn btn-primary" id="add-btn-save" disabled>追加</button>
         </div>
       </form>
     </div>
@@ -87,8 +87,8 @@ export function openPartyAddDialog({ team, onSaved }) {
   const tabContentCreate = dialog.querySelector("#tab-content-create");
   const tabContentSearch = dialog.querySelector("#tab-content-search");
   const pickBtn = dialog.querySelector("#btn-pick-species");
-  const saveBtn = dialog.querySelector("#btn-save");
-  const nicknameInput = dialog.querySelector("#build-nickname");
+  const saveBtn = dialog.querySelector("#add-btn-save");
+  const nicknameInput = dialog.querySelector("#add-build-nickname");
   const form = dialog.querySelector("form");
   const searchInput = dialog.querySelector("#build-search-input");
   const searchResultsEl = dialog.querySelector("#search-results");
@@ -103,7 +103,7 @@ export function openPartyAddDialog({ team, onSaved }) {
   tabBtnCreate.addEventListener("click", () => switchTab("create"));
   tabBtnSearch.addEventListener("click", () => switchTab("search"));
 
-  dialog.querySelector("#btn-cancel").addEventListener("click", () => dialog.close());
+  dialog.querySelector("#add-btn-cancel").addEventListener("click", () => dialog.close());
   dialog.querySelector("#btn-cancel-search").addEventListener("click", () => dialog.close());
 
   pickBtn.addEventListener("click", async () => {
