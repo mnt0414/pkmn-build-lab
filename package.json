@@ -6,7 +6,10 @@
   "scripts": {
     "data:fetch": "node scripts/data-fetch.mjs",
     "data:build": "node scripts/data-build.mjs",
-    "data:verify": "node scripts/data-verify.mjs"
+    "data:verify": "node scripts/data-verify.mjs",
+    "data:fetch:move-ja": "node scripts/fetch-move-names-ja.mjs",
+    "data:fetch:ability-ja": "node scripts/fetch-ability-names-ja.mjs",
+    "test": "node --test js/**/*.test.mjs"
   },
   "devDependencies": {
     "@pkmn/data": "0.10.11",

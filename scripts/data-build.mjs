@@ -4,11 +4,14 @@ import { readFile } from "node:fs/promises";
 import { parseCsv } from "./lib/csv.mjs";
 import { readJson, writeJson } from "./lib/io.mjs";
 import { buildBaseByNum, resolveCsvRow } from "./lib/join.mjs";
+import { toId } from "./lib/to-id.mjs";
 
 const GENERATED_DIR = "data/generated";
 const PATCHES_DIR = "data/patches";
 const DIST_DIR = "data/dist";
+const SOURCES_DIR = "data/sources";
 const CSV_PATH = "data/sources/pokemon_list.csv";
+const ABILITY_SLOTS = ["0", "1", "H"];
 
 function envelope(data, source, patchCount, counts) {
   return {
@@ -63,6 +66,39 @@ function applyLearnsetsPatch(learnsets, patch) {
   return { learnsets: result, opCount };
 }
 
+// movesの各エントリにnameJa(patch上書き > 取得済み日本語名 > null)を追加する。
+function applyMoveNamesJa(moves, namesJaData, patch) {
+  const result = {};
+  for (const [id, entry] of Object.entries(moves)) {
+    result[id] = { ...entry, nameJa: patch[id] ?? namesJaData[id] ?? null };
+  }
+  return result;
+}
+
+// abilities(Showdown表記の英語名)の各スロットに対応する日本語名を引く。
+function buildAbilitiesJa(abilities, namesJaData, patch) {
+  const result = {};
+  for (const slot of ABILITY_SLOTS) {
+    const name = abilities?.[slot];
+    if (!name) {
+      result[slot] = null;
+      continue;
+    }
+    const id = toId(name);
+    result[slot] = patch[id] ?? namesJaData[id] ?? null;
+  }
+  return result;
+}
+
+// pokedexの各エントリにabilitiesJa(abilitiesと対称的な構造)を追加する。
+function applyAbilitiesJa(pokedex, namesJaData, patch) {
+  const result = {};
+  for (const [id, entry] of Object.entries(pokedex)) {
+    result[id] = { ...entry, abilitiesJa: buildAbilitiesJa(entry.abilities, namesJaData, patch) };
+  }
+  return result;
+}
+
 function joinPokedexWithCsv(pokedex, csvRows, formMap) {
   const warnings = [];
   const baseByNum = buildBaseByNum(pokedex);
@@ -98,20 +134,37 @@ function joinPokedexWithCsv(pokedex, csvRows, formMap) {
 }
 
 async function main() {
-  const [pokedexGen, movesGen, learnsetsGen, movesPatch, learnsetsPatch, formMap] = await Promise.all([
+  const [
+    pokedexGen,
+    movesGen,
+    learnsetsGen,
+    movesPatch,
+    learnsetsPatch,
+    formMap,
+    moveNamesJa,
+    abilityNamesJa,
+    moveNamesJaPatch,
+    abilityNamesJaPatch,
+  ] = await Promise.all([
     readJson(`${GENERATED_DIR}/pokedex.json`),
     readJson(`${GENERATED_DIR}/moves.json`),
     readJson(`${GENERATED_DIR}/learnsets.json`),
     readJson(`${PATCHES_DIR}/moves.patch.json`),
     readJson(`${PATCHES_DIR}/learnsets.patch.json`),
     readJson(`${PATCHES_DIR}/form-map.json`),
+    readJson(`${SOURCES_DIR}/move_names_ja.json`),
+    readJson(`${SOURCES_DIR}/ability_names_ja.json`),
+    readJson(`${PATCHES_DIR}/move-names-ja.patch.json`),
+    readJson(`${PATCHES_DIR}/ability-names-ja.patch.json`),
   ]);
   const csvText = await readFile(CSV_PATH, "utf8");
   const csvRows = parseCsv(csvText);
 
-  const { moves, opCount: movesPatchCount } = applyMovesPatch(movesGen.data, movesPatch);
+  const { moves: movesPatched, opCount: movesPatchCount } = applyMovesPatch(movesGen.data, movesPatch);
+  const moves = applyMoveNamesJa(movesPatched, moveNamesJa.data, moveNamesJaPatch);
   const { learnsets, opCount: learnsetsPatchCount } = applyLearnsetsPatch(learnsetsGen.data, learnsetsPatch);
-  const { pokedex, warnings } = joinPokedexWithCsv(pokedexGen.data, csvRows, formMap);
+  const { pokedex: pokedexJoined, warnings } = joinPokedexWithCsv(pokedexGen.data, csvRows, formMap);
+  const pokedex = applyAbilitiesJa(pokedexJoined, abilityNamesJa.data, abilityNamesJaPatch);
 
   for (const w of warnings) console.warn(`[data-build] WARN: ${w}`);
 
