@@ -10,6 +10,7 @@ import {
 } from "./party-logic.js";
 import { openTeamModal } from "./party-team-modal.js";
 import { openPartyAddDialog } from "./party-add-dialog.js";
+import { openBuildEditModal } from "./party-build-modal.js";
 import { getPokedex } from "./static-data.js";
 import { typeJa } from "./type-names.js";
 import { calcAllStats } from "./models.js";
@@ -200,7 +201,8 @@ export async function renderParty(el) {
   });
 
   el.querySelectorAll(".btn-archive-build").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation(); // カードクリック(build編集モーダル起動)への伝播を防ぐ
       const build = buildsById.get(btn.dataset.buildId);
       if (!build) return;
       await setArchived("builds", build.id, !build.archived);
@@ -209,7 +211,8 @@ export async function renderParty(el) {
   });
 
   el.querySelectorAll(".btn-delete-build").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation(); // カードクリック(build編集モーダル起動)への伝播を防ぐ
       const build = buildsById.get(btn.dataset.buildId);
       if (!build) return;
       const ok = confirm("このポケモンを完全に削除します。この操作は取り消せません。よろしいですか？");
@@ -218,6 +221,16 @@ export async function renderParty(el) {
       await put("teams", { ...updatedTeam, updatedAt: new Date().toISOString() });
       await del("builds", build.id);
       renderParty(el);
+    });
+  });
+
+  el.querySelectorAll(".pokemon-card").forEach((card) => {
+    card.addEventListener("click", async () => {
+      const build = buildsById.get(card.dataset.buildId);
+      if (!build) return;
+      const speciesData = pokedex[build.speciesId];
+      const saved = await openBuildEditModal(build, speciesData);
+      if (saved) renderParty(el);
     });
   });
 }
