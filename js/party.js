@@ -1,9 +1,18 @@
-// パーティ編成画面（構築=teamタブ基盤。Phase 3.2以降でbuild本体を実装）。
-import { getAll, put } from "./db.js";
+// パーティ編成画面（構築=teamタブ基盤 + Phase 3.2: build登録・選出6匹/候補プール表示）。
+import { getAll, put, del, setArchived } from "./db.js";
 import { loadUiState, saveUiState } from "./ui-state.js";
 import { escapeHtml } from "./utils.js";
-import { sortTeams, moveItem, countBuildsForTeam } from "./party-logic.js";
+import {
+  sortTeams,
+  moveItem,
+  countBuildsForTeam,
+  removeBuildIdFromTeam,
+} from "./party-logic.js";
 import { openTeamModal } from "./party-team-modal.js";
+import { openPartyAddDialog } from "./party-add-dialog.js";
+import { getPokedex } from "./static-data.js";
+import { typeJa } from "./type-names.js";
+import { calcAllStats } from "./models.js";
 
 function nonArchived(teams) {
   return teams.filter((t) => !t.archived);
@@ -21,8 +30,63 @@ async function persistReorder(teams, fromIndex, toIndex) {
   );
 }
 
+function displayTypes(entry) {
+  if (!entry) return [];
+  if (entry.typesJa) return entry.typesJa;
+  return (entry.types ?? []).map(typeJa);
+}
+
+function statsLineHtml(stats) {
+  if (!stats) return "実数値: 未設定";
+  return `実数値: H${stats.hp} A${stats.atk} B${stats.def} C${stats.spa} D${stats.spd} S${stats.spe}`;
+}
+
+function movesLineHtml(moves) {
+  const slots = (moves ?? [null, null, null, null]).map((m) => (m ? escapeHtml(m) : "未設定"));
+  return `技: ${slots.join(" / ")}`;
+}
+
+function pokemonCardHtml(build, pokedex) {
+  const entry = pokedex[build.speciesId];
+  const name = entry ? entry.nameJa ?? entry.name : build.speciesId;
+  const types = displayTypes(entry);
+  const stats = calcAllStats(entry?.baseStats, build.statPoints, build.nature);
+  return `
+    <div class="pokemon-card" data-build-id="${escapeHtml(build.id)}">
+      <div class="pokemon-card__name">${escapeHtml(name)}</div>
+      ${build.nickname ? `<div class="placeholder">${escapeHtml(build.nickname)}</div>` : ""}
+      <div class="pokemon-card__types">
+        ${types.map((t) => `<span class="type-badge">${escapeHtml(t)}</span>`).join("")}
+      </div>
+      <div class="placeholder">${statsLineHtml(stats)}</div>
+      <div class="placeholder">${movesLineHtml(build.moves)}</div>
+      ${build.archived ? '<div><span class="badge-muted">アーカイブ済み</span></div>' : ""}
+      <div class="pokemon-card__actions">
+        <button type="button" class="btn btn-ghost btn-archive-build" data-build-id="${escapeHtml(build.id)}">${build.archived ? "復元" : "アーカイブ"}</button>
+        <button type="button" class="btn btn-danger btn-delete-build" data-build-id="${escapeHtml(build.id)}">完全削除</button>
+      </div>
+    </div>
+  `;
+}
+
+function memberSectionHtml(team, buildsById, pokedex) {
+  const memberBuilds = team.selectedBuildIds.map((id) => buildsById.get(id)).filter(Boolean);
+  const emptySlotCount = Math.max(0, 6 - memberBuilds.length);
+  const cards = memberBuilds.map((b) => pokemonCardHtml(b, pokedex)).join("");
+  const emptySlots = Array.from({ length: emptySlotCount })
+    .map(() => `<button type="button" class="slot-empty btn-add-build">＋追加</button>`)
+    .join("");
+  return `<div class="grid">${cards}${emptySlots}</div>`;
+}
+
+function poolSectionHtml(team, buildsById, pokedex) {
+  const poolBuilds = team.poolBuildIds.map((id) => buildsById.get(id)).filter(Boolean);
+  const cards = poolBuilds.map((b) => pokemonCardHtml(b, pokedex)).join("");
+  return `<div class="grid">${cards}<button type="button" class="slot-empty btn-add-build">＋追加</button></div>`;
+}
+
 export async function renderParty(el) {
-  const [allTeams, builds] = await Promise.all([getAll("teams"), getAll("builds")]);
+  const [allTeams, allBuilds, pokedex] = await Promise.all([getAll("teams"), getAll("builds"), getPokedex()]);
   const teams = sortTeams(nonArchived(allTeams));
 
   if (teams.length === 0) {
@@ -51,6 +115,9 @@ export async function renderParty(el) {
   const selectedTeam = teams.find((t) => t.id === selectedId);
   const selectedIndex = teams.findIndex((t) => t.id === selectedId);
 
+  const teamBuilds = allBuilds.filter((b) => b.teamId === selectedTeam.id);
+  const buildsById = new Map(teamBuilds.map((b) => [b.id, b]));
+
   const tabsHtml = teams
     .map(
       (t) =>
@@ -71,11 +138,11 @@ export async function renderParty(el) {
     <section class="card">
       <h2>選出6匹</h2>
       <p class="placeholder">${escapeHtml(selectedTeam.name || "無題の構築")}（${selectedTeam.battleFormat === "double" ? "ダブル" : "シングル"} / ${escapeHtml(selectedTeam.regulation || "未設定")}） ${selectedTeam.selectedBuildIds.length}/6匹選出</p>
-      <p class="placeholder">TODO(Phase 3.2以降): build登録・タイプ・実数値（性格・ステータスポイント反映）・技4つ＋技タイプ表示</p>
+      ${memberSectionHtml(selectedTeam, buildsById, pokedex)}
     </section>
     <section class="card">
-      <h2>候補ポケモン（${countBuildsForTeam(builds, selectedTeam.id)}件）</h2>
-      <p class="placeholder">TODO(Phase 3.2以降): 検索（名前・ニックネーム・タグ）・アーカイブ・learnset技フィルタ</p>
+      <h2>候補ポケモン（${countBuildsForTeam(allBuilds, selectedTeam.id)}件）</h2>
+      ${poolSectionHtml(selectedTeam, buildsById, pokedex)}
     </section>
     <section class="card">
       <h2>素早さ比較</h2>
@@ -121,5 +188,36 @@ export async function renderParty(el) {
     if (selectedIndex >= teams.length - 1) return;
     await persistReorder(teams, selectedIndex, selectedIndex + 1);
     renderParty(el);
+  });
+
+  el.querySelectorAll(".btn-add-build").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      openPartyAddDialog({
+        team: selectedTeam,
+        onSaved: () => renderParty(el),
+      });
+    });
+  });
+
+  el.querySelectorAll(".btn-archive-build").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const build = buildsById.get(btn.dataset.buildId);
+      if (!build) return;
+      await setArchived("builds", build.id, !build.archived);
+      renderParty(el);
+    });
+  });
+
+  el.querySelectorAll(".btn-delete-build").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const build = buildsById.get(btn.dataset.buildId);
+      if (!build) return;
+      const ok = confirm("このポケモンを完全に削除します。この操作は取り消せません。よろしいですか？");
+      if (!ok) return;
+      const updatedTeam = removeBuildIdFromTeam(selectedTeam, build.id);
+      await put("teams", { ...updatedTeam, updatedAt: new Date().toISOString() });
+      await del("builds", build.id);
+      renderParty(el);
+    });
   });
 }

@@ -40,3 +40,27 @@ export function defaultFormatForNewTeam(teams) {
   const latest = teams.reduce((a, b) => ((a.createdAt ?? "") >= (b.createdAt ?? "") ? a : b));
   return latest.battleFormat ?? "single";
 }
+
+// 選出6匹(selectedBuildIds)に空きがあればmemberへ、埋まっていればpoolへ追加する。
+// 破壊せず、新しいteamオブジェクトと配置結果("member"|"pool")を返す。
+export function placeBuildInTeam(team, buildId) {
+  if (team.selectedBuildIds.length < 6) {
+    return {
+      team: { ...team, selectedBuildIds: [...team.selectedBuildIds, buildId] },
+      placement: "member",
+    };
+  }
+  return {
+    team: { ...team, poolBuildIds: [...team.poolBuildIds, buildId] },
+    placement: "pool",
+  };
+}
+
+// selectedBuildIds/poolBuildIds両方からbuildIdを除去した新しいteamオブジェクトを返す(存在しない方は無視)。
+export function removeBuildIdFromTeam(team, buildId) {
+  return {
+    ...team,
+    selectedBuildIds: team.selectedBuildIds.filter((id) => id !== buildId),
+    poolBuildIds: team.poolBuildIds.filter((id) => id !== buildId),
+  };
+}
