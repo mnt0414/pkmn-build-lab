@@ -5,11 +5,14 @@ import { readFile } from "node:fs/promises";
 import { parseCsv } from "./lib/csv.mjs";
 import { readJson } from "./lib/io.mjs";
 import { buildBaseByNum, resolveCsvRow } from "./lib/join.mjs";
+import { toId } from "./lib/to-id.mjs";
 
 const GENERATED_DIR = "data/generated";
 const PATCHES_DIR = "data/patches";
 const DIST_DIR = "data/dist";
+const SOURCES_DIR = "data/sources";
 const CSV_PATH = "data/sources/pokemon_list.csv";
+const ABILITY_SLOTS = ["0", "1", "H"];
 
 // form-map.unresolved.md に列挙済みの「既知の未解決行」を no|name キーの集合として抽出する。
 async function loadKnownUnresolved() {
@@ -116,6 +119,36 @@ test("参照整合性: learnsetsの技IDがmovesに存在する", async () => {
     }
   }
   assert.deepEqual(missing, [], `movesに存在しない技IDがlearnsetsに含まれる: ${missing.join(", ")}`);
+});
+
+test("日本語名網羅率: moves.jsonの全件にnameJaが存在する(既知のunmatchedを除く)", async () => {
+  const moves = (await readJson(`${DIST_DIR}/moves.json`)).data;
+  const moveNamesJa = await readJson(`${SOURCES_DIR}/move_names_ja.json`);
+  const unmatched = new Set(moveNamesJa._meta?.unmatched ?? []);
+
+  const undocumented = Object.entries(moves)
+    .filter(([id, entry]) => entry.nameJa === null && !unmatched.has(id))
+    .map(([id]) => id);
+  assert.deepEqual(undocumented, [], `nameJaが無く未文書化(unmatched未記載)の技を検出: ${undocumented.join(", ")}`);
+});
+
+test("日本語名網羅率: pokedexのabilities各スロットにabilitiesJaが存在する(既知のunmatchedを除く)", async () => {
+  const pokedex = (await readJson(`${DIST_DIR}/pokedex.json`)).data;
+  const abilityNamesJa = await readJson(`${SOURCES_DIR}/ability_names_ja.json`);
+  const unmatched = new Set(abilityNamesJa._meta?.unmatched ?? []);
+
+  const undocumented = [];
+  for (const [speciesId, entry] of Object.entries(pokedex)) {
+    for (const slot of ABILITY_SLOTS) {
+      const abilityName = entry.abilities?.[slot];
+      if (!abilityName) continue;
+      const abilityId = toId(abilityName);
+      if (entry.abilitiesJa?.[slot] === null && !unmatched.has(abilityId)) {
+        undocumented.push(`${speciesId}.${slot}(${abilityName})`);
+      }
+    }
+  }
+  assert.deepEqual(undocumented, [], `abilitiesJaが無く未文書化(unmatched未記載)の特性を検出: ${undocumented.join(", ")}`);
 });
 
 test("CSV⇔pokedex整合性: 全行の解決とform-mapの過不足", async () => {
