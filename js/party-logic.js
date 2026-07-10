@@ -64,3 +64,9 @@ export function removeBuildIdFromTeam(team, buildId) {
     poolBuildIds: team.poolBuildIds.filter((id) => id !== buildId),
   };
 }
+
+// moveIdがlearnsetIdsに含まれていなければtrue（「⚠ 習得データ未確認」表示の対象）。未設定(null/空文字)はfalse。
+export function isMoveUnconfirmed(moveId, learnsetIds) {
+  if (!moveId) return false;
+  return !(learnsetIds ?? []).includes(moveId);
+}

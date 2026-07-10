@@ -9,6 +9,7 @@ import {
   defaultFormatForNewTeam,
   placeBuildInTeam,
   removeBuildIdFromTeam,
+  isMoveUnconfirmed,
 } from "./party-logic.js";
 
 test("moveItem: 先頭要素を末尾へ移動する", () => {
@@ -156,4 +157,24 @@ test("removeBuildIdFromTeam: 元のteamオブジェクトを変更しない", ()
   removeBuildIdFromTeam(team, "a");
   assert.deepEqual(team.selectedBuildIds, ["a"]);
   assert.deepEqual(team.poolBuildIds, ["b"]);
+});
+
+test("isMoveUnconfirmed: learnset内の技はfalse", () => {
+  assert.equal(isMoveUnconfirmed("tackle", ["tackle", "growl"]), false);
+});
+
+test("isMoveUnconfirmed: learnset外の技はtrue", () => {
+  assert.equal(isMoveUnconfirmed("hyperbeam", ["tackle", "growl"]), true);
+});
+
+test("isMoveUnconfirmed: nullはfalse", () => {
+  assert.equal(isMoveUnconfirmed(null, ["tackle"]), false);
+});
+
+test("isMoveUnconfirmed: 空文字はfalse", () => {
+  assert.equal(isMoveUnconfirmed("", ["tackle"]), false);
+});
+
+test("isMoveUnconfirmed: learnsetIdsが空配列なら技ありはtrue", () => {
+  assert.equal(isMoveUnconfirmed("tackle", []), true);
 });

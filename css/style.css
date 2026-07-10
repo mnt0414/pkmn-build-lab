@@ -193,3 +193,17 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, .4); }
 .sp-total.is-over { color: var(--danger); font-weight: 700; }
 .field-error { color: var(--danger); font-size: 12px; margin-top: 2px; }
 .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 13px; }
+
+/* ---- Build edit modal: moves (Phase 3.4) ---- */
+.move-slot { border: 1px solid var(--border); border-radius: var(--radius-s); padding: 8px; margin-bottom: 8px; background: var(--surface-2); }
+.move-slot__row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.move-slot__row:last-child { margin-bottom: 0; }
+.move-slot__row .select { flex: 1; }
+.move-slot__row .input { flex: 1; }
+.move-candidate-row { display: flex; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.move-candidate-row:last-child { border-bottom: none; }
+.move-candidate-row > span { flex: 1; min-width: 120px; }
+.move-candidate-add { display: flex; gap: 6px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.move-candidate-add .select, .move-candidate-add .input { flex: 1; min-width: 120px; }
+.field-warning { color: var(--warning); font-size: 12px; margin-top: 4px; }
+.badge-warning { display: inline-flex; align-items: center; color: var(--warning); border: 1px solid var(--warning); background: transparent; border-radius: 999px; padding: 2px 8px; font-size: 11px; }
