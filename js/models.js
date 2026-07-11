@@ -39,12 +39,23 @@ function fixedIvs() {
   return { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
 }
 
-function createEnemyPokemon(partial = {}) {
+// 不明な値は推測せずnullに正規化する（UI側で「詳細不明」表示するための共通仕様）。
+function normalizeEnemyMoves(moves) {
+  const source = Array.isArray(moves) ? moves.slice(0, 4) : [];
+  const normalized = source.map((m) => m ?? null);
+  while (normalized.length < 4) normalized.push(null);
+  return normalized;
+}
+
+export function createEnemyPokemon(partial = {}) {
   return {
-    species: partial.species ?? "",
-    ability: partial.ability ?? "",
-    item: partial.item ?? "",
-    moves: partial.moves ?? ["", "", "", ""],
+    speciesId: partial.speciesId ?? null, // Showdown互換id。素早さ計算時にpokedexを引くキー
+    species: partial.species ?? null, // 日本語表示名のフォールバック（speciesId未解決時の表示用）
+    ability: partial.ability ?? null,
+    nature: partial.nature ?? null,
+    item: partial.item ?? null,
+    statPoints: partial.statPoints ?? null, // buildと同じ形式（{hp,atk,def,spa,spd,spe}）またはnull
+    moves: normalizeEnemyMoves(partial.moves),
   };
 }
 
