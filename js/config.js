@@ -18,4 +18,23 @@ export const CONFIG = {
   presets: {
     majorTeams: "data/presets/major-teams.json",
   },
+  speed: {
+    scarfItemName: "こだわりスカーフ",
+    weathers: [
+      { id: "none", label: "天候なし" },
+      { id: "rain", label: "雨" },
+      { id: "sun", label: "晴れ" },
+      { id: "sand", label: "砂嵐" },
+      { id: "snow", label: "雪" },
+    ],
+    // 対象特性はここに追記するだけで追加できる（データ管理、要件5章に対応）。
+    // abilityAliases: build.ability(選択式・英語名保存)とenemyPokemon.ability(自由入力・日本語名想定)の
+    // 両方の保存形式に対応するため、英語名・日本語名の両方を列挙する。
+    weatherAbilities: [
+      { weather: "rain", abilityAliases: ["Swift Swim", "すいすい"], label: "すいすい", multiplier: 2 },
+      { weather: "sun", abilityAliases: ["Chlorophyll", "ようりょくそ"], label: "ようりょくそ", multiplier: 2 },
+      { weather: "sand", abilityAliases: ["Sand Rush", "すなかき"], label: "すなかき", multiplier: 2 },
+      { weather: "snow", abilityAliases: ["Slush Rush", "ゆきかき"], label: "ゆきかき", multiplier: 2 },
+    ],
+  },
 };
