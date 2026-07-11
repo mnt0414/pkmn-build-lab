@@ -229,3 +229,12 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, .4); }
 .enemy-card__badges { display: flex; gap: 4px; margin: 4px 0; flex-wrap: wrap; }
 .reflect-toggle { margin-top: 8px; border-color: var(--text-3); color: var(--text-3); }
 .reflect-toggle.is-on { border-color: var(--primary); color: var(--primary); background: var(--primary-weak); }
+.enemy-card__actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.checkbox-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
+
+/* ---- ユーザー仮想敵構築 登録・編集モーダル (Phase 4.1) ---- */
+.enemy-poke-slot { border: 1px solid var(--border); border-radius: var(--radius-s); padding: 10px; margin-bottom: 10px; background: var(--surface-2); }
+.enemy-poke-slot__header { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.enemy-poke-slot__header .pokemon-card__name { flex: 1; }
+.enemy-move-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.slot-empty { width: 100%; text-align: left; color: var(--text-2); }
