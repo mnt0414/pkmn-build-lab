@@ -108,6 +108,18 @@ export function checkFormatLegality(build, team) {
   return [];
 }
 
+// 反映ON(isReflected)の仮想敵構築のうち、現在のteamと対戦形式(battleFormat)またはレギュレーション(regulation)が
+// 異なるものを抽出する（素早さ比較画面の警告バナー用）。反映自体はブロックしない(要件定義書4.3)。
+// regulationは両者に値が設定されている場合のみ比較する(片方でも未設定なら警告対象外)。
+export function computeEnemyMismatchWarnings(enemyTeams, team) {
+  return enemyTeams.filter((enemyTeam) => {
+    const formatMismatch = enemyTeam.battleFormat !== team.battleFormat;
+    const regulationMismatch =
+      Boolean(team.regulation) && Boolean(enemyTeam.regulation) && enemyTeam.regulation !== team.regulation;
+    return formatMismatch || regulationMismatch;
+  });
+}
+
 // 過去の構築で登録した調整済みポケモン(build)をニックネーム・種族名(nameJa優先)・タグで検索する(OR条件・大文字小文字区別なし)。
 // queryが空文字の場合は空配列を返す(全件表示はしない)。includeArchived=falseならアーカイブ済みbuildは除外する(3.6: 呼び出し検索のみの制約)。
 export function searchBuilds(builds, pokedexById, query, { includeArchived = false } = {}) {

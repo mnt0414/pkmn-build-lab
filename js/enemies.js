@@ -1,45 +1,9 @@
 // 仮想敵・メジャー構築画面（Phase 4.0: プリセット表示。Phase 4.1: ユーザー構築の登録・編集）
-import { CONFIG } from "./config.js";
 import { escapeHtml, safeHttpsUrl } from "./utils.js";
-import { createEnemyTeam } from "./models.js";
-import { get, put, del, getAll, setArchived } from "./db.js";
+import { put, del, setArchived } from "./db.js";
 import { getPokedex } from "./static-data.js";
 import { openEnemyTeamModal } from "./enemy-team-modal.js";
-
-const PRESET_OVERRIDES_KEY = "presetReflectedOverrides";
-
-async function loadPresets() {
-  let raw = [];
-  try {
-    const res = await fetch(CONFIG.presets.majorTeams);
-    if (res.ok) raw = await res.json();
-  } catch (err) {
-    console.warn("[enemies] プリセット読込失敗（未配置なら正常）", err);
-  }
-  if (!Array.isArray(raw)) {
-    console.warn("[enemies] プリセットJSONが配列ではありません");
-    raw = [];
-  }
-  return raw.map((t) => createEnemyTeam(t));
-}
-
-// プリセットのisReflectedはユーザーのローカルoverrideを静的JSONの初期値より優先する。
-// 静的JSON側は書き換えない（プリセット更新後もユーザーのON/OFFを保持するため）。
-async function loadPresetOverrides() {
-  const row = await get("meta", PRESET_OVERRIDES_KEY);
-  return row?.overrides ?? {};
-}
-
-async function savePresetOverride(id, isReflected) {
-  const row = await get("meta", PRESET_OVERRIDES_KEY);
-  const overrides = { ...(row?.overrides ?? {}), [id]: isReflected };
-  await put("meta", { key: PRESET_OVERRIDES_KEY, overrides });
-  return overrides;
-}
-
-function applyOverrides(teams, overrides) {
-  return teams.map((t) => (t.id in overrides ? { ...t, isReflected: overrides[t.id] } : t));
-}
+import { loadPresets, loadPresetOverrides, savePresetOverride, applyOverrides, loadUserTeams } from "./enemies-data.js";
 
 // 形式・レギュレーションフィルタ。プリセット・ユーザー構築どちらのteam配列にも使える共通関数。
 export function filterEnemyTeams(teams, { battleFormat = "all", regulation = "all" } = {}) {
@@ -114,11 +78,6 @@ function filterRowHtml(regulationOptions, filterState) {
       </select>
     </div>
   `;
-}
-
-async function loadUserTeams() {
-  const rows = await getAll("enemyTeams");
-  return rows.filter((t) => t.sourceType === "user").map((t) => createEnemyTeam(t));
 }
 
 export async function renderEnemies(el) {

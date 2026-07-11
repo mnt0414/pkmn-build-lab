@@ -238,3 +238,25 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, .4); }
 .enemy-poke-slot__header .pokemon-card__name { flex: 1; }
 .enemy-move-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .slot-empty { width: 100%; text-align: left; color: var(--text-2); }
+
+/* ---- 素早さ比較UI (Phase 4.3) ---- */
+.speed-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 4px; }
+.speed-controls .field { margin-bottom: 0; min-width: 140px; }
+.speed-pool-select { margin-bottom: 12px; }
+.speed-list { display: flex; flex-direction: column; }
+.speed-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.speed-row:last-child { border-bottom: none; }
+.speed-value { font-weight: 700; min-width: 3em; }
+.speed-entry { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
+.speed-sprite { width: 32px; height: 32px; object-fit: contain; }
+.speed-entry--ally img { border: 2px solid var(--primary); border-radius: 4px; }
+.speed-entry--enemy img { border: 2px solid var(--danger); border-radius: 4px; }
+.side-label { font-size: 10px; border-radius: 999px; padding: 1px 6px; border: 1px solid currentColor; }
+.side-label--ally { color: var(--primary); }
+.side-label--enemy { color: var(--danger); }
+.modifier-badge { font-size: 10px; color: var(--warning); border: 1px solid var(--warning); border-radius: 999px; padding: 1px 6px; }
+.excluded-section { margin-top: 12px; }
+.excluded-section ul { list-style: none; margin: 4px 0 0; padding: 0; }
+.excluded-section li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--text-2); padding: 4px 0; border-bottom: 1px solid var(--border); }
+.excluded-section li:last-child { border-bottom: none; }
+.excluded-section .btn { min-height: 28px; padding: 2px 10px; font-size: 12px; }

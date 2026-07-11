@@ -25,7 +25,7 @@ function resolveCandidate({ side, sourceId, label, speciesId, statPoints, nature
   if (!entry) reasons.push("種族データ不明");
   if (statPoints == null) reasons.push("SP未入力");
   if (reasons.length > 0) {
-    return { excluded: { side, label, reasons } };
+    return { excluded: { side, sourceId, label, reasons } };
   }
   const stats = calcAllStats(entry.baseStats, statPoints, nature);
   return {
@@ -129,6 +129,22 @@ export function computeFinalSpeed(entry, { weather = "none", allyTailwind = fals
 
   const finalSpeed = Math.floor(entry.baseSpe * multiplier);
   return { finalSpeed, modifiers };
+}
+
+// team.speedCheckState（永続化された比較UIの状態）を安全な既定値で正規化する。
+// poolBuildIdsに存在しないselectedPoolIdsは無視する（構築編集等でプールから消えたIDの残骸対策）。
+export function normalizeSpeedCheckState(team) {
+  const raw = team?.speedCheckState ?? {};
+  const validPoolIds = new Set(team?.poolBuildIds ?? []);
+  const selectedPoolIds = Array.isArray(raw.selectedPoolIds)
+    ? raw.selectedPoolIds.filter((id) => validPoolIds.has(id))
+    : [];
+  return {
+    selectedPoolIds,
+    weather: raw.weather ?? "none",
+    allyTailwind: Boolean(raw.allyTailwind),
+    enemyTailwind: Boolean(raw.enemyTailwind),
+  };
 }
 
 // finalSpeed降順で、同じfinalSpeedのエントリを1グループにまとめる。

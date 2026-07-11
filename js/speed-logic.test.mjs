@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { collectSpeedEntries, computeFinalSpeed, groupBySpeed } from "./speed-logic.js";
+import { collectSpeedEntries, computeFinalSpeed, groupBySpeed, normalizeSpeedCheckState } from "./speed-logic.js";
 import { CONFIG } from "./config.js";
 
 const pokedexById = {
@@ -238,6 +238,7 @@ test("collectSpeedEntries: SP未入力のbuildはexcludedに理由付きで入�
   assert.equal(excluded[0].side, "ally");
   assert.equal(excluded[0].label, "エース");
   assert.deepEqual(excluded[0].reasons, ["SP未入力"]);
+  assert.equal(excluded[0].sourceId, teamBuilds[0].id);
 });
 
 test("collectSpeedEntries: speciesIdがpokedexに無いenemy pokemonはexcludedに入る", () => {
@@ -289,4 +290,24 @@ test("groupBySpeed: 同速2匹が同一グループになる", () => {
   assert.deepEqual(groups[0].entries.map((e) => e.label).sort(), ["A", "B"]);
   assert.equal(groups[1].speed, 100);
   assert.deepEqual(groups[1].entries.map((e) => e.label), ["C"]);
+});
+
+// --- normalizeSpeedCheckState ---
+
+test("normalizeSpeedCheckState: speedCheckStateが空なら既定値を返す", () => {
+  const team = { poolBuildIds: ["b1"] };
+  const state = normalizeSpeedCheckState(team);
+  assert.deepEqual(state, { selectedPoolIds: [], weather: "none", allyTailwind: false, enemyTailwind: false });
+});
+
+test("normalizeSpeedCheckState: poolBuildIdsに存在しないselectedPoolIdsは無視される", () => {
+  const team = {
+    poolBuildIds: ["b1"],
+    speedCheckState: { selectedPoolIds: ["b1", "ghost"], weather: "rain", allyTailwind: true },
+  };
+  const state = normalizeSpeedCheckState(team);
+  assert.deepEqual(state.selectedPoolIds, ["b1"]);
+  assert.equal(state.weather, "rain");
+  assert.equal(state.allyTailwind, true);
+  assert.equal(state.enemyTailwind, false);
 });

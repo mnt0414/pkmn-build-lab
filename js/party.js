@@ -1,7 +1,7 @@
-// パーティ編成画面（構築=teamタブ基盤 + Phase 3.2: build登録・選出6匹/候補プール表示）。
+// パーティ編成画面（構築=teamタブ基盤 + Phase 3.2: build登録・選出6匹/候補プール表示 + Phase 4.3: 素早さ比較）。
 import { getAll, put, del, setArchived } from "./db.js";
 import { loadUiState, saveUiState } from "./ui-state.js";
-import { escapeHtml } from "./utils.js";
+import { escapeHtml, safeHttpsUrl } from "./utils.js";
 import {
   sortTeams,
   moveItem,
@@ -9,13 +9,17 @@ import {
   removeBuildIdFromTeam,
   computeDuplicateWarnings,
   checkFormatLegality,
+  computeEnemyMismatchWarnings,
 } from "./party-logic.js";
+import { collectSpeedEntries, computeFinalSpeed, groupBySpeed, normalizeSpeedCheckState } from "./speed-logic.js";
 import { openTeamModal } from "./party-team-modal.js";
 import { openPartyAddDialog } from "./party-add-dialog.js";
 import { openBuildEditModal } from "./party-build-modal.js";
 import { getPokedex } from "./static-data.js";
 import { typeJa } from "./type-names.js";
 import { calcAllStats } from "./models.js";
+import { CONFIG } from "./config.js";
+import { loadAllEnemyTeams } from "./enemies-data.js";
 
 function nonArchived(teams) {
   return teams.filter((t) => !t.archived);
@@ -112,8 +116,124 @@ function poolSectionHtml(team, buildsById, pokedex) {
   return `<div class="grid">${cards}<button type="button" class="slot-empty btn-add-build">＋追加</button></div>`;
 }
 
+// ---- 素早さ比較（Phase 4.3） ----
+
+function speedControlsHtml(speedState) {
+  const weatherOptions = CONFIG.speed.weathers
+    .map(
+      (w) =>
+        `<option value="${escapeHtml(w.id)}" ${speedState.weather === w.id ? "selected" : ""}>${escapeHtml(w.label)}</option>`
+    )
+    .join("");
+  return `
+    <div class="speed-controls">
+      <div class="field">
+        <label for="speed-weather">天候</label>
+        <select class="select" id="speed-weather">${weatherOptions}</select>
+      </div>
+      <label class="checkbox-label"><input type="checkbox" id="speed-ally-tailwind" ${speedState.allyTailwind ? "checked" : ""}> 味方おいかぜ</label>
+      <label class="checkbox-label"><input type="checkbox" id="speed-enemy-tailwind" ${speedState.enemyTailwind ? "checked" : ""}> 相手おいかぜ</label>
+    </div>
+  `;
+}
+
+function speedPoolSelectHtml(poolBuilds, selectedPoolIds, pokedex) {
+  if (poolBuilds.length === 0) {
+    return `<p class="placeholder">候補プールにポケモンがいません（比較に追加するポケモンは候補プールへ登録してください）</p>`;
+  }
+  const selectedSet = new Set(selectedPoolIds);
+  const items = poolBuilds
+    .map((b) => {
+      const name = speciesDisplayName(b.speciesId, pokedex);
+      const label = b.nickname ? `${name}（${escapeHtml(b.nickname)}）` : escapeHtml(name);
+      return `<label class="checkbox-label"><input type="checkbox" class="speed-pool-chk" data-build-id="${escapeHtml(b.id)}" ${selectedSet.has(b.id) ? "checked" : ""}> ${label}</label>`;
+    })
+    .join("");
+  return `
+    <div class="speed-pool-select">
+      <div class="team-toolbar">
+        <button type="button" class="btn btn-ghost" id="speed-pool-select-all">全選択</button>
+        <button type="button" class="btn btn-ghost" id="speed-pool-select-none">全解除</button>
+      </div>
+      <div class="tag-list">${items}</div>
+    </div>
+  `;
+}
+
+function mismatchWarningHtml(mismatched) {
+  if (mismatched.length === 0) return "";
+  const items = mismatched
+    .map((t) => `<li>形式/レギュレーションが異なりますが反映しています: ${escapeHtml(t.name || "無題の構築")}</li>`)
+    .join("");
+  return `<div class="warning-banner">⚠ 仮想敵構築の一部は対戦形式/レギュレーションが現在の構築と異なりますが反映されています<ul>${items}</ul></div>`;
+}
+
+function speedEntryHtml(entry, pokedex) {
+  const speciesEntry = entry.speciesId ? pokedex[entry.speciesId] : null;
+  const spriteUrl = speciesEntry ? safeHttpsUrl(speciesEntry.spriteUrl) : null;
+  const img = spriteUrl
+    ? `<img class="speed-sprite" src="${escapeHtml(spriteUrl)}" alt="" onerror="this.style.display='none'">`
+    : "";
+  const sideLabel = entry.side === "ally" ? "味方" : "相手";
+  const badges = entry.modifiers
+    .map((m) => `<span class="modifier-badge">${escapeHtml(m.label)} ×${m.multiplier}</span>`)
+    .join("");
+  return `
+    <span class="speed-entry speed-entry--${entry.side}">
+      ${img}
+      <span class="side-label side-label--${entry.side}">${sideLabel}</span>
+      <span>${escapeHtml(entry.label)}</span>
+      ${badges}
+    </span>
+  `;
+}
+
+function speedRowHtml(group, pokedex) {
+  const entries = group.entries.map((e) => speedEntryHtml(e, pokedex)).join("");
+  return `<div class="speed-row"><span class="speed-value">${group.speed}</span>${entries}</div>`;
+}
+
+function excludedSectionHtml(excluded, buildsById) {
+  if (excluded.length === 0) return "";
+  const items = excluded
+    .map((ex) => {
+      const sideLabel = ex.side === "ally" ? "味方" : "相手";
+      const reasonsText = ex.reasons.join("・");
+      const canEdit = ex.side === "ally" && buildsById.has(ex.sourceId);
+      const editBtn = canEdit
+        ? `<button type="button" class="btn btn-ghost btn-edit-excluded" data-build-id="${escapeHtml(ex.sourceId)}">編集</button>`
+        : "";
+      return `<li>[${sideLabel}] ${escapeHtml(ex.label)}: ${escapeHtml(reasonsText)} ${editBtn}</li>`;
+    })
+    .join("");
+  return `
+    <div class="excluded-section">
+      <p class="placeholder">詳細未入力のため計算から除外されています</p>
+      <ul>${items}</ul>
+    </div>
+  `;
+}
+
+function speedCardBodyHtml({ speedState, poolBuilds, mismatched, groups, excluded, buildsById, pokedex }) {
+  const listHtml = groups.length
+    ? groups.map((g) => speedRowHtml(g, pokedex)).join("")
+    : `<p class="placeholder">比較対象のポケモンがいません</p>`;
+  return `
+    ${speedControlsHtml(speedState)}
+    ${speedPoolSelectHtml(poolBuilds, speedState.selectedPoolIds, pokedex)}
+    ${mismatchWarningHtml(mismatched)}
+    <div class="speed-list">${listHtml}</div>
+    ${excludedSectionHtml(excluded, buildsById)}
+  `;
+}
+
 export async function renderParty(el) {
-  const [allTeams, allBuilds, pokedex] = await Promise.all([getAll("teams"), getAll("builds"), getPokedex()]);
+  const [allTeams, allBuilds, pokedex, enemyTeams] = await Promise.all([
+    getAll("teams"),
+    getAll("builds"),
+    getPokedex(),
+    loadAllEnemyTeams(),
+  ]);
   const teams = sortTeams(nonArchived(allTeams));
 
   if (teams.length === 0) {
@@ -152,6 +272,8 @@ export async function renderParty(el) {
     ...teamBuilds.flatMap((b) => checkFormatLegality(b, selectedTeam)),
   ];
 
+  const speedState = normalizeSpeedCheckState(selectedTeam);
+
   const tabsHtml = teams
     .map(
       (t) =>
@@ -181,9 +303,96 @@ export async function renderParty(el) {
     </section>
     <section class="card">
       <h2>素早さ比較</h2>
-      <p class="placeholder">TODO(Phase 4): 仮想敵反映・スカーフ自動反映・おいかぜトグル・全選択／全解除</p>
+      <div id="speed-card-body"></div>
     </section>
   `;
+
+  // ---- 素早さ比較カード（Phase 4.3） ----
+  const speedBodyEl = el.querySelector("#speed-card-body");
+  let currentSpeedState = speedState;
+
+  function drawSpeedCard() {
+    const poolBuilds = selectedTeam.poolBuildIds.map((id) => buildsById.get(id)).filter(Boolean);
+    const reflectedEnemyTeams = enemyTeams.filter((t) => t.isReflected);
+    const mismatched = computeEnemyMismatchWarnings(reflectedEnemyTeams, selectedTeam);
+
+    const { entries, excluded } = collectSpeedEntries({
+      team: selectedTeam,
+      teamBuilds,
+      selectedPoolIds: currentSpeedState.selectedPoolIds,
+      enemyTeams,
+      pokedexById: pokedex,
+    });
+    const entriesWithSpeed = entries.map((entry) => {
+      const { finalSpeed, modifiers } = computeFinalSpeed(entry, {
+        weather: currentSpeedState.weather,
+        allyTailwind: currentSpeedState.allyTailwind,
+        enemyTailwind: currentSpeedState.enemyTailwind,
+      });
+      return { ...entry, finalSpeed, modifiers };
+    });
+    const groups = groupBySpeed(entriesWithSpeed);
+
+    speedBodyEl.innerHTML = speedCardBodyHtml({
+      speedState: currentSpeedState,
+      poolBuilds,
+      mismatched,
+      groups,
+      excluded,
+      buildsById,
+      pokedex,
+    });
+
+    speedBodyEl.querySelector("#speed-weather").addEventListener("change", (e) => {
+      updateSpeedState({ weather: e.target.value });
+    });
+    speedBodyEl.querySelector("#speed-ally-tailwind").addEventListener("change", (e) => {
+      updateSpeedState({ allyTailwind: e.target.checked });
+    });
+    speedBodyEl.querySelector("#speed-enemy-tailwind").addEventListener("change", (e) => {
+      updateSpeedState({ enemyTailwind: e.target.checked });
+    });
+
+    const selectAllBtn = speedBodyEl.querySelector("#speed-pool-select-all");
+    const selectNoneBtn = speedBodyEl.querySelector("#speed-pool-select-none");
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener("click", () => {
+        updateSpeedState({ selectedPoolIds: poolBuilds.map((b) => b.id) });
+      });
+    }
+    if (selectNoneBtn) {
+      selectNoneBtn.addEventListener("click", () => {
+        updateSpeedState({ selectedPoolIds: [] });
+      });
+    }
+    speedBodyEl.querySelectorAll(".speed-pool-chk").forEach((chk) => {
+      chk.addEventListener("change", (e) => {
+        const id = e.target.dataset.buildId;
+        const next = e.target.checked
+          ? [...currentSpeedState.selectedPoolIds, id]
+          : currentSpeedState.selectedPoolIds.filter((x) => x !== id);
+        updateSpeedState({ selectedPoolIds: next });
+      });
+    });
+
+    speedBodyEl.querySelectorAll(".btn-edit-excluded").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const build = buildsById.get(btn.dataset.buildId);
+        if (!build) return;
+        const speciesData = pokedex[build.speciesId];
+        const saved = await openBuildEditModal(build, speciesData);
+        if (saved) renderParty(el); // SP入力等でstatsが変わるため全体を再取得して再描画する
+      });
+    });
+  }
+
+  async function updateSpeedState(patch) {
+    currentSpeedState = { ...currentSpeedState, ...patch };
+    await put("teams", { ...selectedTeam, speedCheckState: currentSpeedState, updatedAt: new Date().toISOString() });
+    drawSpeedCard();
+  }
+
+  drawSpeedCard();
 
   el.querySelectorAll(".tab[data-team-id]").forEach((btn) => {
     btn.addEventListener("click", () => {
