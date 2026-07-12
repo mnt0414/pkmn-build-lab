@@ -12,6 +12,7 @@ import {
   isMoveUnconfirmed,
   computeDuplicateWarnings,
   checkFormatLegality,
+  computeEnemyMismatchWarnings,
   searchBuilds,
   deepCopyBuild,
   copyBuildIntoTeam,
@@ -248,6 +249,33 @@ test("computeDuplicateWarnings: 重複が無ければ空配列を返す", () => 
 
 test("checkFormatLegality: 常に空配列を返すスタブ", () => {
   assert.deepEqual(checkFormatLegality({}, {}), []);
+});
+
+test("computeEnemyMismatchWarnings: battleFormatが異なる仮想敵構築を抽出する", () => {
+  const team = { battleFormat: "single", regulation: "" };
+  const enemyTeams = [
+    { id: "e1", name: "ダブル構築", battleFormat: "double", regulation: "" },
+    { id: "e2", name: "シングル構築", battleFormat: "single", regulation: "" },
+  ];
+  const result = computeEnemyMismatchWarnings(enemyTeams, team);
+  assert.deepEqual(result.map((t) => t.id), ["e1"]);
+});
+
+test("computeEnemyMismatchWarnings: regulationが両者に設定されていて異なる場合のみ抽出する", () => {
+  const team = { battleFormat: "single", regulation: "レギュA" };
+  const enemyTeams = [
+    { id: "e1", battleFormat: "single", regulation: "レギュB" },
+    { id: "e2", battleFormat: "single", regulation: "レギュA" },
+    { id: "e3", battleFormat: "single", regulation: "" },
+  ];
+  const result = computeEnemyMismatchWarnings(enemyTeams, team);
+  assert.deepEqual(result.map((t) => t.id), ["e1"]);
+});
+
+test("computeEnemyMismatchWarnings: 一致していれば空配列を返す", () => {
+  const team = { battleFormat: "single", regulation: "レギュA" };
+  const enemyTeams = [{ id: "e1", battleFormat: "single", regulation: "レギュA" }];
+  assert.deepEqual(computeEnemyMismatchWarnings(enemyTeams, team), []);
 });
 
 const pokedexById = {

@@ -1,36 +1,214 @@
-// 仮想敵・メジャー構築画面（Phase 4で本実装）
-import { CONFIG } from "./config.js";
+// 仮想敵・メジャー構築画面（Phase 4.0: プリセット表示。Phase 4.1: ユーザー構築の登録・編集）
 import { escapeHtml, safeHttpsUrl } from "./utils.js";
+import { put, del, setArchived } from "./db.js";
+import { getPokedex } from "./static-data.js";
+import { openEnemyTeamModal } from "./enemy-team-modal.js";
+import { loadPresets, loadPresetOverrides, savePresetOverride, applyOverrides, loadUserTeams } from "./enemies-data.js";
+
+// 形式・レギュレーションフィルタ。プリセット・ユーザー構築どちらのteam配列にも使える共通関数。
+export function filterEnemyTeams(teams, { battleFormat = "all", regulation = "all" } = {}) {
+  return teams.filter((t) => {
+    if (battleFormat !== "all" && t.battleFormat !== battleFormat) return false;
+    if (regulation !== "all" && t.regulation !== regulation) return false;
+    return true;
+  });
+}
+
+export function collectRegulations(teams) {
+  return Array.from(new Set(teams.map((t) => t.regulation).filter((r) => r))).sort();
+}
+
+function battleFormatJa(battleFormat) {
+  return battleFormat === "double" ? "ダブル" : "シングル";
+}
+
+function speciesDisplayName(p, pokedex) {
+  const entry = p.speciesId ? pokedex[p.speciesId] : null;
+  if (entry?.nameJa) return entry.nameJa;
+  if (p.species) return p.species;
+  return p.speciesId ?? "";
+}
+
+function enemyCardHtml(team, pokedex, { isUser = false } = {}) {
+  const names = team.pokemon.map((p) => escapeHtml(speciesDisplayName(p, pokedex))).join(" / ") || "未登録";
+  const url = safeHttpsUrl(team.sourceUrl);
+  const archivedBadge = isUser && team.archived ? '<span class="badge-muted">アーカイブ済み</span>' : "";
+  return `
+    <div class="enemy-card" data-team-id="${escapeHtml(team.id)}">
+      <div class="pokemon-card__name">${escapeHtml(team.name || "無題の構築")}</div>
+      <div class="enemy-card__badges">
+        <span class="type-badge">${battleFormatJa(team.battleFormat)}</span>
+        <span class="type-badge">${escapeHtml(team.regulation || "レギュ未設定")}</span>
+        ${archivedBadge}
+      </div>
+      <div class="placeholder">${names}</div>
+      ${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">出典記事</a>` : ""}
+      <div class="enemy-card__actions">
+        <button type="button" class="btn reflect-toggle ${team.isReflected ? "is-on" : ""}" data-toggle-id="${escapeHtml(team.id)}">
+          他画面へ反映: ${team.isReflected ? "ON" : "OFF"}
+        </button>
+        ${
+          isUser
+            ? `
+          <button type="button" class="btn btn-ghost" data-edit-id="${escapeHtml(team.id)}">編集</button>
+          <button type="button" class="btn btn-ghost" data-archive-id="${escapeHtml(team.id)}">${team.archived ? "復元" : "アーカイブ"}</button>
+          <button type="button" class="btn btn-danger" data-delete-id="${escapeHtml(team.id)}">完全削除</button>
+        `
+            : ""
+        }
+      </div>
+    </div>
+  `;
+}
+
+function filterRowHtml(regulationOptions, filterState) {
+  const regOptions = regulationOptions
+    .map((r) => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`)
+    .join("");
+  return `
+    <div class="filter-row">
+      <select class="select" id="filter-battle-format">
+        <option value="all">形式: すべて</option>
+        <option value="single">シングル</option>
+        <option value="double">ダブル</option>
+      </select>
+      <select class="select" id="filter-regulation">
+        <option value="all">レギュ: すべて</option>
+        ${regOptions}
+      </select>
+    </div>
+  `;
+}
 
 export async function renderEnemies(el) {
-  let presets = [];
-  try {
-    const res = await fetch(CONFIG.presets.majorTeams);
-    if (res.ok) presets = await res.json();
-  } catch (err) {
-    console.warn("[enemies] プリセット読込失敗（未配置なら正常）", err);
+  const [presets, overrides, pokedex, userTeams] = await Promise.all([
+    loadPresets(),
+    loadPresetOverrides(),
+    getPokedex(),
+    loadUserTeams(),
+  ]);
+  let presetOverrides = overrides;
+  let userTeamsState = userTeams;
+  let filterState = { battleFormat: "all", regulation: "all" };
+  let showArchived = false;
+
+  async function refreshUserTeams() {
+    userTeamsState = await loadUserTeams();
   }
-  if (!Array.isArray(presets)) {
-    console.warn("[enemies] プリセットJSONが配列ではありません");
-    presets = [];
+
+  function draw() {
+    const presetTeams = applyOverrides(presets, presetOverrides);
+    const visibleUserTeams = showArchived ? userTeamsState : userTeamsState.filter((t) => !t.archived);
+    const regulationOptions = collectRegulations([...presetTeams, ...userTeamsState]);
+
+    const filteredPresets = filterEnemyTeams(presetTeams, filterState);
+    const filteredUserTeams = filterEnemyTeams(visibleUserTeams, filterState);
+
+    const presetCards = filteredPresets.map((t) => enemyCardHtml(t, pokedex)).join("");
+    const userCards = filteredUserTeams.map((t) => enemyCardHtml(t, pokedex, { isUser: true })).join("");
+
+    el.innerHTML = `
+      <section class="card">
+        <h2>メジャーな構築（プリセット）</h2>
+        ${filterRowHtml(regulationOptions, filterState)}
+        ${presetCards ? `<div class="enemy-list">${presetCards}</div>` : '<p class="placeholder">該当する構築がありません</p>'}
+      </section>
+      <section class="card">
+        <h2>ユーザー構築</h2>
+        <div class="team-toolbar">
+          <button type="button" class="btn btn-primary" id="btn-add-user-team">＋仮想敵構築を追加</button>
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-show-archived" ${showArchived ? "checked" : ""}>
+            アーカイブ済みを表示
+          </label>
+        </div>
+        ${userCards ? `<div class="enemy-list">${userCards}</div>` : '<p class="placeholder">該当する構築がありません</p>'}
+      </section>
+    `;
+
+    const formatSelect = el.querySelector("#filter-battle-format");
+    const regulationSelect = el.querySelector("#filter-regulation");
+    formatSelect.value = filterState.battleFormat;
+    regulationSelect.value = filterState.regulation;
+
+    formatSelect.addEventListener("change", (e) => {
+      filterState = { ...filterState, battleFormat: e.target.value };
+      draw();
+    });
+    regulationSelect.addEventListener("change", (e) => {
+      filterState = { ...filterState, regulation: e.target.value };
+      draw();
+    });
+
+    el.querySelector("#btn-add-user-team").addEventListener("click", () => {
+      openEnemyTeamModal({
+        mode: "create",
+        onSaved: async () => {
+          await refreshUserTeams();
+          draw();
+        },
+      });
+    });
+
+    el.querySelector("#chk-show-archived").addEventListener("change", (e) => {
+      showArchived = e.target.checked;
+      draw();
+    });
+
+    el.querySelectorAll(".reflect-toggle").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.toggleId;
+        const presetMatch = presetTeams.find((t) => t.id === id);
+        if (presetMatch) {
+          presetOverrides = await savePresetOverride(id, !presetMatch.isReflected);
+          draw();
+          return;
+        }
+        const userMatch = userTeamsState.find((t) => t.id === id);
+        if (!userMatch) return;
+        await put("enemyTeams", { ...userMatch, isReflected: !userMatch.isReflected, updatedAt: new Date().toISOString() });
+        await refreshUserTeams();
+        draw();
+      });
+    });
+
+    el.querySelectorAll("[data-edit-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.editId;
+        const team = userTeamsState.find((t) => t.id === id);
+        if (!team) return;
+        openEnemyTeamModal({
+          mode: "edit",
+          team,
+          onSaved: async () => {
+            await refreshUserTeams();
+            draw();
+          },
+        });
+      });
+    });
+
+    el.querySelectorAll("[data-archive-id]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.archiveId;
+        const team = userTeamsState.find((t) => t.id === id);
+        if (!team) return;
+        await setArchived("enemyTeams", id, !team.archived);
+        await refreshUserTeams();
+        draw();
+      });
+    });
+
+    el.querySelectorAll("[data-delete-id]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.deleteId;
+        if (!confirm("この仮想敵構築を完全に削除します。よろしいですか？（元に戻せません）")) return;
+        await del("enemyTeams", id);
+        await refreshUserTeams();
+        draw();
+      });
+    });
   }
-  const list = presets
-    .map(
-      (t) => `
-      <li>
-        <strong>${escapeHtml(t.name)}</strong>（${(Array.isArray(t.pokemon) ? t.pokemon : []).map((p) => escapeHtml(p.species)).join(" / ")}）
-        ${safeHttpsUrl(t.sourceUrl) ? `<a href="${escapeHtml(safeHttpsUrl(t.sourceUrl))}" target="_blank" rel="noopener">出典記事</a>` : ""}
-      </li>`
-    )
-    .join("");
-  el.innerHTML = `
-    <section class="card">
-      <h2>メジャーな構築（プリセット）</h2>
-      ${list ? `<ul>${list}</ul>` : '<p class="placeholder">プリセット未読込</p>'}
-    </section>
-    <section class="card">
-      <h2>ユーザー構築</h2>
-      <p class="placeholder">TODO(Phase 4): 任意6匹の登録・「他画面へ反映」選択</p>
-    </section>
-  `;
+
+  draw();
 }

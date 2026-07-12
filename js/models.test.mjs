@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateStatPoints, calcStat, calcAllStats } from "./models.js";
+import { validateStatPoints, calcStat, calcAllStats, createEnemyPokemon, createEnemyTeam } from "./models.js";
 
 test("validateStatPoints: nullは未入力として許容", () => {
   const result = validateStatPoints(null);
@@ -66,4 +66,60 @@ test("calcAllStats: statPoints=nullなら全体nullを返す", () => {
   const base = { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 };
   const stats = calcAllStats(base, null, "がんばりや", 50);
   assert.equal(stats, null);
+});
+
+test("createEnemyPokemon: 省略フィールドはnullに正規化される", () => {
+  const p = createEnemyPokemon({});
+  assert.equal(p.speciesId, null);
+  assert.equal(p.species, null);
+  assert.equal(p.ability, null);
+  assert.equal(p.nature, null);
+  assert.equal(p.item, null);
+  assert.equal(p.statPoints, null);
+  assert.deepEqual(p.moves, [null, null, null, null]);
+});
+
+test("createEnemyPokemon: movesが4要素未満の場合はnull埋めされる", () => {
+  const p = createEnemyPokemon({ moves: ["でんこうせっか"] });
+  assert.deepEqual(p.moves, ["でんこうせっか", null, null, null]);
+});
+
+test("createEnemyPokemon: movesが5件以上の場合は先頭4件のみ採用される", () => {
+  const p = createEnemyPokemon({ moves: ["わざ1", "わざ2", "わざ3", "わざ4", "わざ5"] });
+  assert.deepEqual(p.moves, ["わざ1", "わざ2", "わざ3", "わざ4"]);
+});
+
+test("createEnemyPokemon: speciesId/nature/statPoints等の指定値は保持される", () => {
+  const p = createEnemyPokemon({
+    speciesId: "floette",
+    species: "フラエッテ",
+    ability: "フラワーベール",
+    nature: "ひかえめ",
+    item: "こだわりメガネ",
+    statPoints: { hp: 4, atk: 0, def: 0, spa: 32, spd: 0, spe: 30 },
+  });
+  assert.equal(p.speciesId, "floette");
+  assert.equal(p.species, "フラエッテ");
+  assert.equal(p.ability, "フラワーベール");
+  assert.equal(p.nature, "ひかえめ");
+  assert.equal(p.item, "こだわりメガネ");
+  assert.deepEqual(p.statPoints, { hp: 4, atk: 0, def: 0, spa: 32, spd: 0, spe: 30 });
+});
+
+test("createEnemyTeam: isReflectedはデフォルトtrue", () => {
+  const t = createEnemyTeam({});
+  assert.equal(t.isReflected, true);
+});
+
+test("createEnemyTeam: partial.idが指定されていれば保持される", () => {
+  const t = createEnemyTeam({ id: "preset-2026-pjcs-elfliza" });
+  assert.equal(t.id, "preset-2026-pjcs-elfliza");
+});
+
+test("createEnemyTeam: pokemon配列の各要素がcreateEnemyPokemonで正規化される", () => {
+  const t = createEnemyTeam({ pokemon: [{ speciesId: "floette", species: "フラエッテ" }] });
+  assert.equal(t.pokemon.length, 1);
+  assert.equal(t.pokemon[0].speciesId, "floette");
+  assert.equal(t.pokemon[0].ability, null);
+  assert.deepEqual(t.pokemon[0].moves, [null, null, null, null]);
 });
