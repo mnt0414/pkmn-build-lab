@@ -275,3 +275,30 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, .4); }
 .enemy-pokemon-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
 .enemy-pokemon-row:last-child { border-bottom: none; }
 .enemy-pokemon-row .btn { min-height: 28px; padding: 2px 10px; font-size: 12px; }
+
+/* ---- トースト通知 (Phase 6.0: alert()置換) ---- */
+.toast-container {
+  position: fixed; left: 0; right: 0; z-index: 20;
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 0 16px; pointer-events: none;
+}
+@media (min-width: 720px) { .toast-container { bottom: 16px; } }
+.toast {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; max-width: 480px;
+  background: var(--surface); color: var(--text-1);
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  box-shadow: var(--shadow-1);
+  padding: 10px 12px; font-size: 13px;
+  opacity: 1; transform: translateY(0);
+  transition: opacity .3s, transform .3s;
+}
+.toast.is-hiding { opacity: 0; transform: translateY(4px); }
+.toast-message { flex: 1; }
+.toast-close { appearance: none; border: none; background: none; color: var(--text-3); cursor: pointer; font-size: 14px; padding: 0 2px; }
+.toast-success { border-color: var(--success); }
+.toast-success .toast-message { color: var(--success); }
+.toast-error { border-color: var(--danger); }
+.toast-error .toast-message { color: var(--danger); }

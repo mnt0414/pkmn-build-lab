@@ -2,6 +2,8 @@
 import { CONFIG } from "./config.js";
 import { exportAll, importAll } from "./db.js";
 import { applyTheme } from "./ui-state.js";
+import { showToast } from "./toast.js";
+import { showConfirmDialog } from "./confirm-dialog.js";
 
 function downloadPayload(payload, filename) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -50,12 +52,13 @@ export async function renderSettings(el) {
     try {
       const backup = await exportAll();
       downloadPayload(backup, `pkmn-build-lab-before-import-${backup.exportedAt.slice(0, 10)}.json`);
-      if (!confirm("反映前バックアップを保存しました。差分を反映しますか？")) return;
+      const ok = await showConfirmDialog({ message: "反映前バックアップを保存しました。差分を反映しますか？" });
+      if (!ok) return;
       await importAll(JSON.parse(await file.text()));
-      alert("インポートが完了しました");
+      showToast("インポートが完了しました", { type: "success" });
       location.reload();
     } catch (err) {
-      alert(`インポートに失敗しました: ${err.message}`);
+      showToast(`インポートに失敗しました: ${err.message}`, { type: "error" });
     }
   });
 }

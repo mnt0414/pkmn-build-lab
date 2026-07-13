@@ -16,6 +16,7 @@ import { openTeamModal } from "./party-team-modal.js";
 import { openPartyAddDialog } from "./party-add-dialog.js";
 import { openBuildEditModal } from "./party-build-modal.js";
 import { getPokedex } from "./static-data.js";
+import { showConfirmDialog } from "./confirm-dialog.js";
 import { typeJa } from "./type-names.js";
 import { calcAllStats } from "./models.js";
 import { CONFIG } from "./config.js";
@@ -472,7 +473,10 @@ export async function renderParty(el) {
       e.stopPropagation(); // カードクリック(build編集モーダル起動)への伝播を防ぐ
       const build = buildsById.get(btn.dataset.buildId);
       if (!build) return;
-      const ok = confirm("このポケモンを完全に削除します。この操作は取り消せません。よろしいですか？");
+      const ok = await showConfirmDialog({
+        message: "このポケモンを完全に削除します。この操作は取り消せません。よろしいですか？",
+        danger: true,
+      });
       if (!ok) return;
       const updatedTeam = removeBuildIdFromTeam(selectedTeam, build.id);
       await put("teams", { ...updatedTeam, updatedAt: new Date().toISOString() });

@@ -8,6 +8,8 @@ import {
   nextSortOrder,
   duplicateTeam,
 } from "./party-logic.js";
+import { showToast } from "./toast.js";
+import { showConfirmDialog } from "./confirm-dialog.js";
 
 let dialogEl = null;
 
@@ -86,7 +88,7 @@ export function openTeamModal({ mode, team = null, teams = [], onSaved, onDelete
     e.preventDefault();
     const regulation = regulationInput.value.trim();
     if (!regulation) {
-      alert("レギュレーションを入力してください");
+      showToast("レギュレーションを入力してください", { type: "error" });
       regulationInput.focus();
       return;
     }
@@ -121,9 +123,10 @@ export function openTeamModal({ mode, team = null, teams = [], onSaved, onDelete
     dialog.querySelector("#btn-delete").addEventListener("click", async () => {
       const builds = await getAll("builds");
       const buildIds = cascadeDeleteTeamBuildIds(builds, team.id);
-      const ok = confirm(
-        `この構築を完全に削除します。所属する構築メンバー${buildIds.length}件も同時に削除されます。この操作は取り消せません。よろしいですか？`
-      );
+      const ok = await showConfirmDialog({
+        message: `この構築を完全に削除します。所属する構築メンバー${buildIds.length}件も同時に削除されます。この操作は取り消せません。よろしいですか？`,
+        danger: true,
+      });
       if (!ok) return;
       for (const id of buildIds) await del("builds", id);
       await del("teams", team.id);
