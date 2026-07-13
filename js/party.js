@@ -69,6 +69,7 @@ function pokemonCardHtml(build, pokedex) {
       <div class="placeholder">${movesLineHtml(build.moves)}</div>
       ${build.archived ? '<div><span class="badge-muted">アーカイブ済み</span></div>' : ""}
       <div class="pokemon-card__actions">
+        <button type="button" class="btn btn-ghost btn-calc-build" data-build-id="${escapeHtml(build.id)}">ダメージ計算へ</button>
         <button type="button" class="btn btn-ghost btn-archive-build" data-build-id="${escapeHtml(build.id)}">${build.archived ? "復元" : "アーカイブ"}</button>
         <button type="button" class="btn btn-danger btn-delete-build" data-build-id="${escapeHtml(build.id)}">完全削除</button>
       </div>
@@ -444,6 +445,15 @@ export async function renderParty(el) {
         team: selectedTeam,
         onSaved: () => renderParty(el),
       });
+    });
+  });
+
+  // ダメージ計算画面へ、このポケモンを攻撃側の事前選択対象として渡す(Phase 5.3)。
+  el.querySelectorAll(".btn-calc-build").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation(); // カードクリック(build編集モーダル起動)への伝播を防ぐ
+      saveUiState({ calcPreselect: { side: "atk", kind: "build", buildId: btn.dataset.buildId } });
+      document.querySelector('[data-page="calc"]').click();
     });
   });
 

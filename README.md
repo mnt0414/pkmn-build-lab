@@ -32,6 +32,24 @@
 - 新世代で技・特性が増えたら、該当スクリプトを再実行してコミットする（`data/generated/moves.json` / `pokedex.json` に無いidは自動的に対象外）。
 - PokeAPIで解決できなかったid（未実装のZ技・ダイマックス技、CAP専用の非公式特性など）は `_meta.unmatched` に記録され、`data:verify` はこれを既知分として除外して網羅率を検証する。誤対応・未解決の手動修正は `data/patches/move-names-ja.patch.json` / `data/patches/ability-names-ja.patch.json` で行う。
 
+## ダメージ計算コードの流用元(Phase 5)
+
+ダメージ計算(`js/calc.js`/`js/calc-engine.js`)は、姉妹プロジェクト BATTLEREC のコードをコピーして実装しています(共通ライブラリ化はしていません)。
+
+- 流用元リポジトリ: `mnt0414/pkmn-buttledata` (BATTLEREC)
+- ローカルパス: `C:\Users\mnt20\Documents\claude-dev\pkmn-buttledata`
+- コピー時点のブランチ: `work`
+- コピー時点のコミットハッシュ: `539a703e9393d70af78df08882599e7fab2912b4`
+- 計算エンジン: `@smogon/calc@0.11` (CDN経由ESM: `https://cdn.jsdelivr.net/npm/@smogon/calc@0.11/+esm`)
+- コピー日: 2026-07-13
+
+BATTLERECとダメージ計算コードは同期していません。どちらか一方でバグを修正した場合、もう一方にも同じ修正を反映することを推奨します(詳細はNotion要件定義書3.2参照)。
+
+### 既知の制約(Phase 5.1で判明)
+
+- **持ち物の英語名解決不可**: 持ち物(item)は自由入力テキストとして保存しているため、英語名への機械的な変換手段がない。`@smogon/calc`側の持ち物辞書(`gen.items`)で実在チェックを行い、解決できた場合のみ装備として扱う。解決できない場合は「持ち物なし」として計算し、計算結果の注記(notes)にその旨を表示する。防御側で未解決の持ち物文字列をそのまま渡すと`calculate()`が例外を投げることを実機確認済みのため、この割り切りは必須の対応。
+- **一部特性のポストマルチプライヤー未対応**: `champions_overlay.json`の特性補正のうち、タイプ変換系(`fromType`)・天候変換系(`weather`)を伴う特性は未対応。単純な威力倍率(`mult`)のみ適用し、それ以外は計算結果の注記に「特性補正未対応」として理由を残す(計算自体はブロックしない)。メガシンカ自体のタイプ変換(`overlay.megas[].types`)はこの制約の対象外で正しく反映される。
+
 ## データソース・クレジット
 
 - Data: Pokemon Showdown / @pkmn project（MIT）
