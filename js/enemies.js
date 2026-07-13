@@ -1,5 +1,6 @@
 // 仮想敵・メジャー構築画面（Phase 4.0: プリセット表示。Phase 4.1: ユーザー構築の登録・編集）
 import { escapeHtml, safeHttpsUrl } from "./utils.js";
+import { saveUiState } from "./ui-state.js";
 import { put, del, setArchived } from "./db.js";
 import { getPokedex } from "./static-data.js";
 import { openEnemyTeamModal } from "./enemy-team-modal.js";
@@ -29,8 +30,23 @@ function speciesDisplayName(p, pokedex) {
   return p.speciesId ?? "";
 }
 
+// 仮想敵構築1件のポケモン一覧。ダメージ計算画面の「仮想敵から選ぶ」タブと同様、
+// speciesId未設定のポケモンはダメージ計算に使えないため「ダメージ計算へ」ボタンを出さない。
+function enemyPokemonListHtml(team, pokedex) {
+  if (team.pokemon.length === 0) return '<p class="placeholder">未登録</p>';
+  const rows = team.pokemon
+    .map((p, idx) => {
+      const name = escapeHtml(speciesDisplayName(p, pokedex));
+      const calcBtn = p.speciesId
+        ? `<button type="button" class="btn btn-ghost btn-calc-enemy" data-team-id="${escapeHtml(team.id)}" data-pokemon-index="${idx}">ダメージ計算へ</button>`
+        : "";
+      return `<div class="enemy-pokemon-row"><span>${name}</span>${calcBtn}</div>`;
+    })
+    .join("");
+  return `<div class="enemy-pokemon-list">${rows}</div>`;
+}
+
 function enemyCardHtml(team, pokedex, { isUser = false } = {}) {
-  const names = team.pokemon.map((p) => escapeHtml(speciesDisplayName(p, pokedex))).join(" / ") || "未登録";
   const url = safeHttpsUrl(team.sourceUrl);
   const archivedBadge = isUser && team.archived ? '<span class="badge-muted">アーカイブ済み</span>' : "";
   return `
@@ -41,7 +57,7 @@ function enemyCardHtml(team, pokedex, { isUser = false } = {}) {
         <span class="type-badge">${escapeHtml(team.regulation || "レギュ未設定")}</span>
         ${archivedBadge}
       </div>
-      <div class="placeholder">${names}</div>
+      ${enemyPokemonListHtml(team, pokedex)}
       ${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">出典記事</a>` : ""}
       <div class="enemy-card__actions">
         <button type="button" class="btn reflect-toggle ${team.isReflected ? "is-on" : ""}" data-toggle-id="${escapeHtml(team.id)}">
@@ -153,6 +169,22 @@ export async function renderEnemies(el) {
     el.querySelector("#chk-show-archived").addEventListener("change", (e) => {
       showArchived = e.target.checked;
       draw();
+    });
+
+    // ダメージ計算画面へ、このポケモンを防御側の事前選択対象として渡す(Phase 5.3)。
+    el.querySelectorAll(".btn-calc-enemy").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        saveUiState({
+          calcPreselect: {
+            side: "def",
+            kind: "enemyPokemon",
+            teamId: btn.dataset.teamId,
+            pokemonIndex: Number(btn.dataset.pokemonIndex),
+          },
+        });
+        document.querySelector('[data-page="calc"]').click();
+      });
     });
 
     el.querySelectorAll(".reflect-toggle").forEach((btn) => {

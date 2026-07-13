@@ -2,7 +2,7 @@
 // 攻撃側/防御側を「自分のパーティ」「仮想敵」「新種族」の3経路から選択し、calc-engine.jsのcalculateDamageで計算する。
 // 注意: ダメ計のバグを修正した場合はBATTLEREC側にも反映すること（要件定義書3.2参照）。
 import { get, getAll } from "./db.js";
-import { loadUiState } from "./ui-state.js";
+import { loadUiState, saveUiState } from "./ui-state.js";
 import { escapeHtml } from "./utils.js";
 import { CONFIG } from "./config.js";
 import { NATURES, STAT_KEYS, SP_MAX_PER_STAT, SP_MAX_TOTAL, validateStatPoints, calcAllStats } from "./models.js";
@@ -368,6 +368,32 @@ function newSpeciesFormHtml(entry, speciesId, learnsets, movesData) {
   `;
 }
 
+// build+team から選択結果オブジェクトを組み立てる（自分のパーティ経路）。
+// openCalcPickerの「自分のパーティから」タブと、Phase5.3のパーティ画面からの直接遷移(事前選択)の
+// 両方から呼ばれる共通ロジック（二重実装防止）。
+function buildPartySideFromTeam(build, team, pokedex) {
+  return {
+    build,
+    pokedexEntry: pokedex[build.speciesId],
+    sourceLabel: `自分のパーティ: ${team?.name || "無題の構築"}`,
+    sourceFormat: team ? { battleFormat: team.battleFormat, regulation: team.regulation } : null,
+    canEdit: true,
+  };
+}
+
+// 仮想敵pokemon+team から選択結果オブジェクトを組み立てる（仮想敵経路）。
+// openCalcPickerの「仮想敵から」タブと、Phase5.3の仮想敵画面からの直接遷移(事前選択)の
+// 両方から呼ばれる共通ロジック（二重実装防止）。
+function buildEnemySideFromTeam(pokemon, team, pokedex) {
+  return {
+    build: pokemon,
+    pokedexEntry: pokedex[pokemon.speciesId],
+    sourceLabel: `仮想敵: ${team.name || "無題の構築"}`,
+    sourceFormat: { battleFormat: team.battleFormat, regulation: team.regulation },
+    canEdit: false,
+  };
+}
+
 // 選択ダイアログを開く。resolve({build,pokedexEntry,sourceLabel,sourceFormat,canEdit}) または キャンセル時null。
 function openCalcPicker({ pokedex, movesData, learnsets }) {
   return new Promise((resolve) => {
@@ -413,13 +439,7 @@ function openCalcPicker({ pokedex, movesData, learnsets }) {
           const build = candidates.find((b) => b.id === rowEl.dataset.buildId);
           if (!build) return;
           const team = teamsById.get(build.teamId);
-          finish({
-            build,
-            pokedexEntry: pokedex[build.speciesId],
-            sourceLabel: `自分のパーティ: ${team?.name || "無題の構築"}`,
-            sourceFormat: team ? { battleFormat: team.battleFormat, regulation: team.regulation } : null,
-            canEdit: true,
-          });
+          finish(buildPartySideFromTeam(build, team, pokedex));
           dialog.close();
         });
       });
@@ -444,13 +464,7 @@ function openCalcPicker({ pokedex, movesData, learnsets }) {
         rowEl.addEventListener("click", () => {
           const row = rows.find((r) => r.key === rowEl.dataset.rowKey);
           if (!row) return;
-          finish({
-            build: row.pokemon,
-            pokedexEntry: pokedex[row.pokemon.speciesId],
-            sourceLabel: `仮想敵: ${row.team.name || "無題の構築"}`,
-            sourceFormat: { battleFormat: row.team.battleFormat, regulation: row.team.regulation },
-            canEdit: false,
-          });
+          finish(buildEnemySideFromTeam(row.pokemon, row.team, pokedex));
           dialog.close();
         });
       });
@@ -579,6 +593,42 @@ export async function renderCalc(el) {
   };
   let lastResult = null;
   let lastErrorMessage = null;
+
+  // パーティ画面/仮想敵画面の「ダメージ計算へ」から遷移した場合、ui-state.jsに一時保存された
+  // 事前選択(calcPreselect)を読み取り該当サイドに反映する。読み取り後は即クリアする使い切り仕様
+  // （次回この画面を開いたときに毎回同じ対象が復元され続けるのを防ぐため）。
+  async function applyPreselect() {
+    const pre = loadUiState().calcPreselect;
+    if (!pre) return;
+    saveUiState({ calcPreselect: null });
+
+    let picked = null;
+    try {
+      if (pre.kind === "build" && pre.buildId) {
+        const [build, allTeams] = await Promise.all([get("builds", pre.buildId), getAll("teams")]);
+        if (build) {
+          const team = allTeams.find((t) => t.id === build.teamId);
+          picked = buildPartySideFromTeam(build, team, pokedex);
+        }
+      } else if (pre.kind === "enemyPokemon" && pre.teamId != null && pre.pokemonIndex != null) {
+        const enemyTeams = await loadAllEnemyTeams();
+        const team = enemyTeams.find((t) => t.id === pre.teamId);
+        const pokemon = team?.pokemon?.[pre.pokemonIndex];
+        if (team && pokemon) picked = buildEnemySideFromTeam(pokemon, team, pokedex);
+      }
+    } catch (err) {
+      console.error("[calc] 事前選択の反映に失敗しました", err);
+    }
+    if (!picked) return;
+
+    const nextSide = {
+      ...emptySide(),
+      ...picked,
+      resolvedMoves: computeResolvedMoves(picked.build, movesData, nameJaLookup),
+    };
+    if (pre.side === "def") defSide = nextSide;
+    else atkSide = nextSide;
+  }
 
   async function pickSide(sideKey) {
     const picked = await openCalcPicker({ pokedex, movesData, learnsets });
@@ -724,5 +774,6 @@ export async function renderCalc(el) {
     el.querySelector("#calc-btn-run").addEventListener("click", runCalculation);
   }
 
+  await applyPreselect();
   draw();
 }
