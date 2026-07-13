@@ -195,6 +195,7 @@ export async function buildPokemon(build, pokedexEntry, options = {}) {
 // moveId（英語）からchampions_overlay.jsonの技差分（威力/命中）を適用した@smogon/calcのMoveインスタンスを
 // 構築する（BATTLEREC calc.js:prepMove相当）。moveDataは既にnameJaを保持しているため、
 // getNameJaLookup()の技逆引きMapを介さずそのまま照合する（車輪の再発明を避ける）。
+// options.isCrit: trueなら急所ヒット扱い（BATTLEREC calc.js:calcOnceの`pm.move.isCrit=true`相当）。
 export async function buildMove(moveId, options = {}) {
   const notes = [];
   const moves = await getMoves();
@@ -219,6 +220,7 @@ export async function buildMove(moveId, options = {}) {
   let move;
   try {
     move = new smogon.Move(gen, moveData.name, Object.keys(overrides).length ? { overrides } : undefined);
+    if (options.isCrit) move.isCrit = true;
   } catch (err) {
     return { error: `技の構築に失敗しました: ${err.message}` };
   }
@@ -282,7 +284,7 @@ export async function calculateDamage(
   });
   if (def.error) return { error: def.error };
 
-  const moveResult = await buildMove(moveId, {});
+  const moveResult = await buildMove(moveId, { isCrit: options.isCrit });
   if (moveResult.error) return { error: moveResult.error };
 
   const field = buildField(fieldOptions);
