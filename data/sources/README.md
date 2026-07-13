@@ -26,3 +26,8 @@
 - **形式**: `{ "_meta": { "source", "fetchedAt", "counts", "unmatched": [id, ...] }, "data": { id: "日本語名", ... } }`。`unmatched`はPokeAPI側にスラッグが見つからない/日本語名が無いid(未実装のZ技・ダイマックス技、CAP専用の非公式技・特性など)。
 - **用途**: `scripts/data-build.mjs`で`data/dist/moves.json`の`nameJa`、`data/dist/pokedex.json`の`abilitiesJa`に統合される。`scripts/data-verify.mjs`で`unmatched`記載分を除く全件に日本語名が存在することを検証する。
 - **更新方法**: 新しい世代で技・特性が追加されたら、該当npm scriptを再実行してコミットする(既存分は再取得しない)。誤対応や個別の手動修正は`data/patches/move-names-ja.patch.json` / `data/patches/ability-names-ja.patch.json`(`{ showdownId: "正しい日本語名" }`のフラットな上書きマップ)で行う。**このリポジトリ内で`move_names_ja.json` / `ability_names_ja.json`自体を直接編集しない**(fetchスクリプトの再実行結果が正)。
+
+## champions_overlay.json
+- 由来: `pkmn-buttledata`リポジトリ(BATTLEREC)の `data/champions_overlay.json` をコピー。
+- 用途: ポケモンチャンピオンズ固有の技威力/命中変更・新特性・メガシンカのデータ。`@smogon/calc`が第9世代(SV)までしか対応しないため、その差分を埋める。キーは全て日本語名(技名/特性名/メガ名)。ダメージ計算(js/calc-engine.js)で `nameJa` 逆引きを介して適用する。
+- 更新方法: BATTLEREC側の最新版を確認し、このファイルを丸ごと上書きコピーする。このリポジトリ内で直接編集しない。

@@ -32,6 +32,19 @@
 - 新世代で技・特性が増えたら、該当スクリプトを再実行してコミットする（`data/generated/moves.json` / `pokedex.json` に無いidは自動的に対象外）。
 - PokeAPIで解決できなかったid（未実装のZ技・ダイマックス技、CAP専用の非公式特性など）は `_meta.unmatched` に記録され、`data:verify` はこれを既知分として除外して網羅率を検証する。誤対応・未解決の手動修正は `data/patches/move-names-ja.patch.json` / `data/patches/ability-names-ja.patch.json` で行う。
 
+## ダメージ計算コードの流用元(Phase 5)
+
+ダメージ計算(`js/calc.js`/`js/calc-engine.js`)は、姉妹プロジェクト BATTLEREC のコードをコピーして実装しています(共通ライブラリ化はしていません)。
+
+- 流用元リポジトリ: `mnt0414/pkmn-buttledata` (BATTLEREC)
+- ローカルパス: `C:\Users\mnt20\Documents\claude-dev\pkmn-buttledata`
+- コピー時点のブランチ: `work`
+- コピー時点のコミットハッシュ: `539a703e9393d70af78df08882599e7fab2912b4`
+- 計算エンジン: `@smogon/calc@0.11` (CDN経由ESM: `https://cdn.jsdelivr.net/npm/@smogon/calc@0.11/+esm`)
+- コピー日: 2026-07-13
+
+BATTLERECとダメージ計算コードは同期していません。どちらか一方でバグを修正した場合、もう一方にも同じ修正を反映することを推奨します(詳細はNotion要件定義書3.2参照)。
+
 ## データソース・クレジット
 
 - Data: Pokemon Showdown / @pkmn project（MIT）
