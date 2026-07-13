@@ -87,6 +87,18 @@ function isImportedNewer(imported, current) {
   return importedTime > currentTime;
 }
 
+// 全ストアを1トランザクションでクリアする（全データ削除）。
+export async function clearAll() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORES, "readwrite");
+    for (const name of STORES) tx.objectStore(name).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
 // 全ストアを1トランザクションで差分マージする。
 // 途中で1件でも失敗した場合はトランザクション全体がロールバックされる。
 export async function importAll(payload) {
