@@ -2,6 +2,7 @@
 import { put } from "./db.js";
 import { NATURES, STAT_KEYS, SP_MAX_PER_STAT, SP_MAX_TOTAL, validateStatPoints, calcAllStats } from "./models.js";
 import { escapeHtml } from "./utils.js";
+import { CONFIG } from "./config.js";
 import { openSpeciesPicker } from "./species-picker.js";
 import { getPokedex, getMoves, getLearnsets } from "./static-data.js";
 import { typeJa } from "./type-names.js";
@@ -29,6 +30,14 @@ function displayTypes(speciesData) {
   if (!speciesData) return [];
   if (speciesData.typesJa) return speciesData.typesJa;
   return (speciesData.types ?? []).map(typeJa);
+}
+
+// ポケ轍・育成論ページへの送客リンク（要件3.4）。numが不正な場合は表示しない。
+function theoryLinkHtml(speciesData) {
+  const num = speciesData?.num;
+  if (!Number.isInteger(num) || num <= 0) return "";
+  const url = CONFIG.links.yakkunTheoryUrl(num);
+  return `<div class="modal-theory-link"><a href="${escapeHtml(url)}" target="_blank" rel="noopener">育成論</a></div>`;
 }
 
 function abilityOptionsHtml(speciesData, selected) {
@@ -187,6 +196,7 @@ export function openBuildEditModal(build, speciesData) {
       dialog.innerHTML = `
         <form method="dialog" novalidate>
           <div class="modal-header">${escapeHtml(speciesName)}を編集</div>
+          ${theoryLinkHtml(speciesData)}
           <div class="modal-body">
             <div class="field">
               <label>タイプ</label>

@@ -1,6 +1,7 @@
 // 種族検索ダイアログ。mode: "single"(デフォルト・単一選択) | "multi"(複数選択、3.3で苦手なポケモン用に追加)。
 import { getPokedex } from "./static-data.js";
 import { escapeHtml } from "./utils.js";
+import { CONFIG } from "./config.js";
 
 let dialogEl = null;
 
@@ -17,15 +18,23 @@ function displayName(entry) {
   return entry.nameJa ?? entry.name;
 }
 
+// ポケ轍・育成論ページへの送客リンク（要件3.4）。numが不正な場合は表示しない。
+function theoryLinkHtml(num) {
+  if (!Number.isInteger(num) || num <= 0) return "";
+  const url = CONFIG.links.yakkunTheoryUrl(num);
+  return `<a class="species-picker-link" href="${escapeHtml(url)}" target="_blank" rel="noopener">育成論</a>`;
+}
+
 function renderSingleResults(matched) {
   return `<ul class="species-picker-list">${matched
     .map(
       (p) => `
-      <li>
+      <li class="species-picker-row">
         <button type="button" class="btn species-picker-item" data-species-id="${escapeHtml(p.id)}">
           ${escapeHtml(displayName(p))}
           ${p.isNonstandard != null ? '<span class="badge-muted">(非標準)</span>' : ""}
         </button>
+        ${theoryLinkHtml(p.num)}
       </li>`
     )
     .join("")}</ul>`;
@@ -99,6 +108,9 @@ export function openSpeciesPicker({ mode = "single", initialSelectedIds = [] } =
       .then((pokedex) => {
         const rerender = () => {
           resultsEl.innerHTML = renderResults(pokedex, input.value, mode, selectedIds);
+          resultsEl.querySelectorAll(".species-picker-link").forEach((a) => {
+            a.addEventListener("click", (e) => e.stopPropagation());
+          });
         };
         rerender();
         updateSummary();
