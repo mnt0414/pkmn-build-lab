@@ -1,8 +1,10 @@
 // 種族検索ダイアログ。mode: "single"(デフォルト・単一選択) | "multi"(複数選択、3.3で苦手なポケモン用に追加)。
 import { getPokedex } from "./static-data.js";
-import { escapeHtml } from "./utils.js";
+import { escapeHtml, searchByName } from "./utils.js";
 import { spriteImgHtml } from "./pokemon-identity.js";
 import { CONFIG } from "./config.js";
+
+const MAX_RESULTS = 50;
 
 let dialogEl = null;
 
@@ -62,12 +64,13 @@ function renderMultiResults(matched, selectedIds) {
 function renderResults(pokedex, query, mode, selectedIds) {
   const q = query.trim();
   if (!q) return '<p class="placeholder">検索してください</p>';
-  const lowerQ = q.toLowerCase();
-  const matched = Object.values(pokedex)
-    .filter((p) => displayName(p).toLowerCase().includes(lowerQ))
-    .slice(0, 50);
-  if (matched.length === 0) return '<p class="placeholder">該当するポケモンが見つかりません</p>';
-  return mode === "multi" ? renderMultiResults(matched, selectedIds) : renderSingleResults(matched);
+  const allMatched = searchByName(Object.values(pokedex), q, displayName);
+  if (allMatched.length === 0) return '<p class="placeholder">該当するポケモンが見つかりません</p>';
+  const matched = allMatched.slice(0, MAX_RESULTS);
+  const remaining = allMatched.length - matched.length;
+  const list = mode === "multi" ? renderMultiResults(matched, selectedIds) : renderSingleResults(matched);
+  const moreNotice = remaining > 0 ? `<p class="placeholder">他${remaining}件</p>` : "";
+  return list + moreNotice;
 }
 
 // single: resolve(speciesId) を呼ぶPromiseを返す。キャンセル時はresolve(null)。
