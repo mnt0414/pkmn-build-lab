@@ -1,7 +1,9 @@
 # Round 1A 実装結果(再提出)
 
-ブランチ: `uiux-round1a`(mainへは未マージ、push/deployなし)
-コミット: `a6d2cdc`〜`4f34308`(7コミット、17ファイル・467行追加/53行削除)
+状態: mainへマージ済み・originへのpush未実施・deploy未実施・Round1B未着手
+- Round1A実装コミット(`uiux-round1a`ブランチ): `a6d2cdc`〜`4f34308`(7コミット、17ファイル・467行追加/53行削除)
+- mainマージコミット: `6d5dcb7`(`--no-ff`)
+- 報告書更新コミット: `18cb2a9`
 
 ## 変更ファイル
 - `js/config.js`: `CONFIG.regulations`(`{id,label}`静的リスト、M-A/M-B)を追加
@@ -71,10 +73,15 @@
 - `npm run data:verify`: 17件全pass
 
 ## 未解決事項(新規発見、今回は修正せず報告のみ)
-`js/party.js`の候補ポケモン件数表示(`countBuildsForTeam`)が、候補プールではなく構築メンバー込みの全build数を数えている軽微な不具合を発見。Round1B「候補プールと構築メンバーの交換」領域に近接するスコープのため、今回は修正せず報告のみ。対応要否はRound1Bで判断。
+`js/party.js`の候補ポケモン件数表示(`countBuildsForTeam`)が、候補プールではなく構築メンバー込みの全build数を数えている軽微な不具合を発見。Round1B「候補プールと構築メンバーの交換」領域に近接するスコープのため、今回は修正せず報告のみ。
+
+**Round1Bへの引き継ぎ事項(2026-07-15、ユーザー承認時に仕様確定)**:
+- 構築メンバー数: `selectedBuildIds.length` / 6
+- 候補数: `poolBuildIds.length`
+- アーカイブ済みbuildはいずれのカウントにも含めない
 
 ## 回帰リスク
 低。全チェックリスト・自動テスト・データ検証が通過。
 
 ## 判定
-指摘事項1〜7全項目PASS。`uiux-round1a`ブランチはmain未マージ。マージ可否はユーザー判断待ち。
+指摘事項1〜7全項目PASS。ユーザー承認により`uiux-round1a`をmainへ`--no-ff`マージ済み(マージコミット、2026-07-15)。main上でも`node --test`(146件中145 pass・1 skip・0 fail)・`npm run data:verify`(17件全pass)を再確認し、承認時と同じ結果であることを確認。push・deployは未実施(ユーザー手動)。Round1Bは`uiux-round1b`ブランチを新規作成して着手する。
