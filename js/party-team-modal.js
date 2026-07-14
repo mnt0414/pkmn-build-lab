@@ -2,6 +2,7 @@
 import { createTeam } from "./models.js";
 import { put, del, setArchived, getAll } from "./db.js";
 import { escapeHtml } from "./utils.js";
+import { CONFIG } from "./config.js";
 import {
   cascadeDeleteTeamBuildIds,
   defaultFormatForNewTeam,
@@ -29,6 +30,19 @@ function formatOptionsHtml(selected) {
   `;
 }
 
+// selectedがCONFIG.regulationsに存在しない値（自由入力時代の旧データ）の場合、
+// 「(旧値: ○○)」optionを末尾に追加し選択状態にする。選び直さない限り保存時もそのまま維持される。
+function regulationOptionsHtml(selected) {
+  const options = CONFIG.regulations
+    .map((r) => `<option value="${escapeHtml(r.id)}" ${selected === r.id ? "selected" : ""}>${escapeHtml(r.label)}</option>`)
+    .join("");
+  const isKnown = CONFIG.regulations.some((r) => r.id === selected);
+  if (selected && !isKnown) {
+    return `${options}<option value="${escapeHtml(selected)}" selected>(旧値: ${escapeHtml(selected)})</option>`;
+  }
+  return options;
+}
+
 // mode: "create" | "edit"
 // teams: sortOrder算出・対戦形式初期値算出に使う全team一覧（アーカイブ済み含む）
 export function openTeamModal({ mode, team = null, teams = [], onSaved, onDeleted, onDuplicated }) {
@@ -50,7 +64,7 @@ export function openTeamModal({ mode, team = null, teams = [], onSaved, onDelete
         </div>
         <div class="field">
           <label for="team-regulation">レギュレーション</label>
-          <input class="input" id="team-regulation" type="text" value="${escapeHtml(isCreate ? "" : team.regulation)}" placeholder="例: レギュレーションH">
+          <select class="select" id="team-regulation">${regulationOptionsHtml(isCreate ? CONFIG.regulations[0].id : team.regulation)}</select>
         </div>
         ${
           isCreate
@@ -80,16 +94,16 @@ export function openTeamModal({ mode, team = null, teams = [], onSaved, onDelete
   const form = dialog.querySelector("form");
   const nameInput = dialog.querySelector("#team-name");
   const formatSelect = dialog.querySelector("#team-format");
-  const regulationInput = dialog.querySelector("#team-regulation");
+  const regulationSelect = dialog.querySelector("#team-regulation");
 
   dialog.querySelector("#team-btn-cancel").addEventListener("click", () => dialog.close());
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const regulation = regulationInput.value.trim();
+    const regulation = regulationSelect.value;
     if (!regulation) {
-      showToast("レギュレーションを入力してください", { type: "error" });
-      regulationInput.focus();
+      showToast("レギュレーションを選択してください", { type: "error" });
+      regulationSelect.focus();
       return;
     }
     const name = nameInput.value.trim() || "新しい構築";

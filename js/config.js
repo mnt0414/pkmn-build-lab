@@ -18,6 +18,11 @@ export const CONFIG = {
   presets: {
     majorTeams: "data/presets/major-teams.json",
   },
+  // レギュレーションの静的リスト（開発者管理）。将来allowedPokemon等のフィールド追加も可能な形にしておく。
+  regulations: [
+    { id: "M-A", label: "M-A" },
+    { id: "M-B", label: "M-B" },
+  ],
   speed: {
     scarfItemName: "こだわりスカーフ",
     weathers: [
