@@ -83,5 +83,28 @@
 ## 回帰リスク
 低。全チェックリスト・自動テスト・データ検証が通過。
 
+## 8. デプロイ後スモークテスト(2026-07-15、公開版 https://mnt0414.github.io/pkmn-build-lab/ )
+push(origin main)後、GitHub Actions(pages-build-deployment)が`success`で完了したことを確認。公開版に対しPlaywrightで15項目のスモークテストを実施、**全項目PASS**。
+
+| # | 項目 | 判定 |
+|---|---|---|
+| 1 | アプリの初期表示 | PASS |
+| 2 | パーティ構築作成 | PASS |
+| 3 | レギュレーションM-A/M-B選択(自由入力欄なし) | PASS |
+| 4 | ポケモン検索 | PASS |
+| 5 | 「ぴか」→ピカチュウ | PASS |
+| 6 | 英語名検索(Pikachu/pikachu) | PASS |
+| 7 | 図鑑番号検索(25) | PASS |
+| 8 | 上下矢印・Enter・Esc | PASS |
+| 9 | フォーカス復帰 | PASS |
+| 10 | スプライト表示 | PASS |
+| 11 | スプライトフォールバック | PASS |
+| 12 | 390pxライト | PASS |
+| 13 | 390pxダーク | PASS |
+| 14 | console error | PASS(0件) |
+| 15 | console warning | PASS(0件) |
+
+補足: サブエージェントの検証ログの一部に、検索候補0件・activedescendant未設定等に見える記述が残っていたため、念のため独立した検証スクリプトで公開版を再確認した。「ぴか」で2件(ピカチュウ/ズピカ)ヒット、矢印キーで`aria-activedescendant`が正しく移動、Enterで現在ハイライト中の候補が確定してポケモン欄に反映、Escで検索ダイアログのみが閉じて元のボタン(`#btn-pick-species`)へフォーカスが復帰することを確認し、いずれも正常動作であることを確認した(console error/warningとも0件)。
+
 ## 判定
-指摘事項1〜7全項目PASS。ユーザー承認により`uiux-round1a`をmainへ`--no-ff`マージ済み(マージコミット、2026-07-15)。main上でも`node --test`(146件中145 pass・1 skip・0 fail)・`npm run data:verify`(17件全pass)を再確認し、承認時と同じ結果であることを確認。push・deployは未実施(ユーザー手動)。Round1Bは`uiux-round1b`ブランチを新規作成して着手する。
+指摘事項1〜7全項目PASS。ユーザー承認により`uiux-round1a`をmainへ`--no-ff`マージ済み(マージコミット`6d5dcb7`)。main上でも`node --test`(146件中145 pass・1 skip・0 fail)・`npm run data:verify`(17件全pass)を再確認し、承認時と同じ結果であることを確認。ユーザーによるpush実施後、GitHub Pagesへのデプロイ完了・公開版スモークテスト全15項目PASSを確認。Round1Bは`uiux-round1b`ブランチを新規作成して着手する(未着手)。
