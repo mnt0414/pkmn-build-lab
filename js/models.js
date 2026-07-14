@@ -3,6 +3,7 @@
 // 個体値(ivs)は常に31固定・UI編集対象外。実数値(stats)はbuildに保存せず、都度calcAllStats等で導出する。
 
 export const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"];
+export const STAT_LABELS = { hp: "HP", atk: "こうげき", def: "ぼうぎょ", spa: "とくこう", spd: "とくぼう", spe: "すばやさ" };
 export const SP_MAX_PER_STAT = 32;
 export const SP_MAX_TOTAL = 66;
 
@@ -129,7 +130,7 @@ export function validateStatPoints(statPoints) {
   for (const key of STAT_KEYS) {
     const value = statPoints[key];
     if (!Number.isInteger(value) || value < 0 || value > SP_MAX_PER_STAT) {
-      errors.push(`${key}は0〜${SP_MAX_PER_STAT}の整数で指定してください`);
+      errors.push(`${STAT_LABELS[key]}は0〜${SP_MAX_PER_STAT}の整数で指定してください`);
     } else {
       total += value;
     }

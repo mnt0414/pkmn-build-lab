@@ -1,6 +1,6 @@
 // build編集モーダル（基本情報：ニックネーム/特性/性格/持ち物/SP/タグ/苦手なポケモン/メモ + 技編集(3.4)）。
 import { put } from "./db.js";
-import { NATURES, STAT_KEYS, SP_MAX_PER_STAT, SP_MAX_TOTAL, validateStatPoints, calcAllStats } from "./models.js";
+import { NATURES, STAT_KEYS, STAT_LABELS, SP_MAX_PER_STAT, SP_MAX_TOTAL, validateStatPoints, calcAllStats } from "./models.js";
 import { escapeHtml } from "./utils.js";
 import { CONFIG } from "./config.js";
 import { openSpeciesPicker } from "./species-picker.js";
@@ -14,8 +14,6 @@ const MOVE_SLOT_COUNT = 4;
 
 let dialogEl = null;
 let currentCancelHandler = null;
-
-const STAT_LABELS = { hp: "HP", atk: "こうげき", def: "ぼうぎょ", spa: "とくこう", spd: "とくぼう", spe: "すばやさ" };
 
 function ensureDialog() {
   if (!dialogEl) {

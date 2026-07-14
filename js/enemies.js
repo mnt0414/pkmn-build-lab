@@ -1,5 +1,6 @@
 // 仮想敵・メジャー構築画面（Phase 4.0: プリセット表示。Phase 4.1: ユーザー構築の登録・編集）
 import { escapeHtml, safeHttpsUrl } from "./utils.js";
+import { CONFIG } from "./config.js";
 import { saveUiState } from "./ui-state.js";
 import { put, del, setArchived } from "./db.js";
 import { getPokedex } from "./static-data.js";
@@ -16,8 +17,12 @@ export function filterEnemyTeams(teams, { battleFormat = "all", regulation = "al
   });
 }
 
+// フィルタの選択肢はCONFIG.regulations（開発者管理の静的リスト）と、
+// 既存データに含まれる値（自由入力時代の旧値も含む）の和集合。CONFIG.regulations→旧値(sort)の順。
 export function collectRegulations(teams) {
-  return Array.from(new Set(teams.map((t) => t.regulation).filter((r) => r))).sort();
+  const knownIds = new Set(CONFIG.regulations.map((r) => r.id));
+  const legacyValues = Array.from(new Set(teams.map((t) => t.regulation).filter((r) => r && !knownIds.has(r)))).sort();
+  return [...CONFIG.regulations.map((r) => r.id), ...legacyValues];
 }
 
 function battleFormatJa(battleFormat) {

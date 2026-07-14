@@ -164,6 +164,7 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, .4); }
 /* ---- Pokemon cards / species picker (Phase 3.2) ---- */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
 .pokemon-card { border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--surface-2); padding: 10px; cursor: pointer; }
+.pokemon-card__header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .pokemon-card__name { font-weight: 600; font-size: 13px; }
 .pokemon-card__types { display: flex; gap: 4px; margin: 4px 0; flex-wrap: wrap; }
 .pokemon-card__actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
@@ -174,6 +175,12 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, .4); }
   border-radius: 999px; padding: 2px 8px; font-size: 11px;
 }
 .badge-muted { color: var(--text-3); border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; font-size: 11px; }
+.sprite-img { object-fit: contain; flex-shrink: 0; }
+.sprite-fallback {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-s);
+  color: var(--text-3); font-weight: 700; font-size: 14px;
+}
 .search-box { width: 100%; margin-bottom: 8px; }
 .slot-empty {
   appearance: none; cursor: pointer;
@@ -182,11 +189,17 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, .4); }
   min-height: 44px;
 }
 .species-picker-list { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow-y: auto; }
-.species-picker-item { width: 100%; justify-content: flex-start; margin-bottom: 4px; }
+.species-picker-item { width: 100%; justify-content: flex-start; gap: 8px; margin-bottom: 4px; }
 .species-picker-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .species-picker-row .species-picker-item { margin-bottom: 0; flex: 1; }
 .species-picker-link { flex-shrink: 0; font-size: 12px; white-space: nowrap; color: var(--primary); }
 .species-picker-item-multi { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.species-picker-item:hover { background: var(--surface-2); }
+.species-picker-item.is-active { background: var(--primary-weak); border-color: var(--primary); }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
 
 /* ---- Build edit modal (Phase 3.3) ---- */
 .tag-input { display: flex; gap: 6px; }

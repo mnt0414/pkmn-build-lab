@@ -5,6 +5,7 @@ import { put } from "./db.js";
 import {
   NATURES,
   STAT_KEYS,
+  STAT_LABELS,
   SP_MAX_PER_STAT,
   SP_MAX_TOTAL,
   validateStatPoints,
@@ -12,6 +13,7 @@ import {
   createEnemyTeam,
 } from "./models.js";
 import { escapeHtml, safeHttpsUrl } from "./utils.js";
+import { CONFIG } from "./config.js";
 import { openSpeciesPicker } from "./species-picker.js";
 import { getPokedex, getMoves, getLearnsets } from "./static-data.js";
 import { showToast } from "./toast.js";
@@ -19,7 +21,6 @@ import { showConfirmDialog } from "./confirm-dialog.js";
 
 const POKEMON_SLOT_COUNT = 6;
 const MOVE_SLOT_COUNT = 4;
-const STAT_LABELS = { hp: "HP", atk: "こうげき", def: "ぼうぎょ", spa: "とくこう", spd: "とくぼう", spe: "すばやさ" };
 
 let dialogEl = null;
 let currentCancelHandler = null;
@@ -38,6 +39,22 @@ function formatOptionsHtml(selected) {
     <option value="single" ${selected === "single" ? "selected" : ""}>シングル</option>
     <option value="double" ${selected === "double" ? "selected" : ""}>ダブル</option>
   `;
+}
+
+// レギュレーションは任意項目のため先頭に「未設定」(value="")を用意する。
+// selectedがCONFIG.regulationsに存在しない値（自由入力時代の旧データ）の場合、
+// 「(旧値: ○○)」optionを末尾に追加し選択状態にする。選び直さない限り保存時もそのまま維持される。
+export function regulationOptionsHtml(selected) {
+  const value = selected ?? "";
+  const options = [`<option value="" ${value === "" ? "selected" : ""}>未設定</option>`];
+  for (const r of CONFIG.regulations) {
+    options.push(`<option value="${escapeHtml(r.id)}" ${value === r.id ? "selected" : ""}>${escapeHtml(r.label)}</option>`);
+  }
+  const isKnown = value === "" || CONFIG.regulations.some((r) => r.id === value);
+  if (!isKnown) {
+    options.push(`<option value="${escapeHtml(value)}" selected>(旧値: ${escapeHtml(value)})</option>`);
+  }
+  return options.join("");
 }
 
 function natureOptionsHtml(selected) {
@@ -164,7 +181,7 @@ export function openEnemyTeamModal({ mode, team = null, onSaved }) {
           </div>
           <div class="field">
             <label for="enemy-team-regulation">レギュレーション（任意）</label>
-            <input class="input" id="enemy-team-regulation" type="text" value="${escapeHtml(isCreate ? "" : team.regulation ?? "")}" placeholder="未入力可">
+            <select class="select" id="enemy-team-regulation">${regulationOptionsHtml(isCreate ? "" : team.regulation)}</select>
           </div>
           <div class="field">
             <label for="enemy-team-url">出典URL（任意・https）</label>

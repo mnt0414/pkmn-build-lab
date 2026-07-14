@@ -54,8 +54,8 @@ export function openPartyAddDialog({ team, onSaved }) {
       <form method="dialog" novalidate>
         <div class="modal-body">
           <div class="field">
-            <label>種族</label>
-            <button type="button" class="btn" id="btn-pick-species">種族を検索して選択</button>
+            <label>ポケモン</label>
+            <button type="button" class="btn" id="btn-pick-species">ポケモンを検索して選択</button>
           </div>
           <div class="field">
             <label for="add-build-nickname">ニックネーム（任意）</label>
