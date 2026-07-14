@@ -1,7 +1,8 @@
 // パーティ編成画面（構築=teamタブ基盤 + Phase 3.2: build登録・選出6匹/候補プール表示 + Phase 4.3: 素早さ比較）。
 import { getAll, put, del, setArchived } from "./db.js";
 import { loadUiState, saveUiState } from "./ui-state.js";
-import { escapeHtml, safeHttpsUrl } from "./utils.js";
+import { escapeHtml } from "./utils.js";
+import { spriteImgHtml } from "./pokemon-identity.js";
 import {
   sortTeams,
   moveItem,
@@ -61,7 +62,10 @@ function pokemonCardHtml(build, pokedex) {
   const stats = calcAllStats(entry?.baseStats, build.statPoints, build.nature);
   return `
     <div class="pokemon-card" data-build-id="${escapeHtml(build.id)}">
-      <div class="pokemon-card__name">${escapeHtml(name)}</div>
+      <div class="pokemon-card__header">
+        ${spriteImgHtml(entry, { size: 40 })}
+        <div class="pokemon-card__name">${escapeHtml(name)}</div>
+      </div>
       ${build.nickname ? `<div class="placeholder">${escapeHtml(build.nickname)}</div>` : ""}
       <div class="pokemon-card__types">
         ${types.map((t) => `<span class="type-badge">${escapeHtml(t)}</span>`).join("")}
@@ -172,10 +176,7 @@ function mismatchWarningHtml(mismatched) {
 
 function speedEntryHtml(entry, pokedex) {
   const speciesEntry = entry.speciesId ? pokedex[entry.speciesId] : null;
-  const spriteUrl = speciesEntry ? safeHttpsUrl(speciesEntry.spriteUrl) : null;
-  const img = spriteUrl
-    ? `<img class="speed-sprite" src="${escapeHtml(spriteUrl)}" alt="" onerror="this.style.display='none'">`
-    : "";
+  const img = spriteImgHtml(speciesEntry, { size: 32, className: "speed-sprite" });
   const sideLabel = entry.side === "ally" ? "味方" : "相手";
   const badges = entry.modifiers
     .map((m) => `<span class="modifier-badge">${escapeHtml(m.label)} ×${m.multiplier}</span>`)

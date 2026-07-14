@@ -1,6 +1,7 @@
 // 種族検索ダイアログ。mode: "single"(デフォルト・単一選択) | "multi"(複数選択、3.3で苦手なポケモン用に追加)。
 import { getPokedex } from "./static-data.js";
 import { escapeHtml } from "./utils.js";
+import { spriteImgHtml } from "./pokemon-identity.js";
 import { CONFIG } from "./config.js";
 
 let dialogEl = null;
@@ -31,7 +32,8 @@ function renderSingleResults(matched) {
       (p) => `
       <li class="species-picker-row">
         <button type="button" class="btn species-picker-item" data-species-id="${escapeHtml(p.id)}">
-          ${escapeHtml(displayName(p))}
+          ${spriteImgHtml(p, { size: 40 })}
+          <span>${escapeHtml(displayName(p))}</span>
           ${p.isNonstandard != null ? '<span class="badge-muted">(非標準)</span>' : ""}
         </button>
         ${theoryLinkHtml(p.num)}
@@ -48,7 +50,8 @@ function renderMultiResults(matched, selectedIds) {
       <li>
         <label class="btn species-picker-item species-picker-item-multi">
           <input type="checkbox" data-species-id="${escapeHtml(p.id)}" ${checked}>
-          ${escapeHtml(displayName(p))}
+          ${spriteImgHtml(p, { size: 40 })}
+          <span>${escapeHtml(displayName(p))}</span>
           ${p.isNonstandard != null ? '<span class="badge-muted">(非標準)</span>' : ""}
         </label>
       </li>`;
