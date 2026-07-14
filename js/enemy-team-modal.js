@@ -44,7 +44,7 @@ function formatOptionsHtml(selected) {
 // レギュレーションは任意項目のため先頭に「未設定」(value="")を用意する。
 // selectedがCONFIG.regulationsに存在しない値（自由入力時代の旧データ）の場合、
 // 「(旧値: ○○)」optionを末尾に追加し選択状態にする。選び直さない限り保存時もそのまま維持される。
-function regulationOptionsHtml(selected) {
+export function regulationOptionsHtml(selected) {
   const value = selected ?? "";
   const options = [`<option value="" ${value === "" ? "selected" : ""}>未設定</option>`];
   for (const r of CONFIG.regulations) {

@@ -32,7 +32,7 @@ function formatOptionsHtml(selected) {
 
 // selectedがCONFIG.regulationsに存在しない値（自由入力時代の旧データ）の場合、
 // 「(旧値: ○○)」optionを末尾に追加し選択状態にする。選び直さない限り保存時もそのまま維持される。
-function regulationOptionsHtml(selected) {
+export function regulationOptionsHtml(selected) {
   const options = CONFIG.regulations
     .map((r) => `<option value="${escapeHtml(r.id)}" ${selected === r.id ? "selected" : ""}>${escapeHtml(r.label)}</option>`)
     .join("");
