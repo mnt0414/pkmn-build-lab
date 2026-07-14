@@ -1,9 +1,10 @@
 # Round 1A 実装結果(再提出)
 
-状態: mainへマージ済み・originへのpush未実施・deploy未実施・Round1B未着手
+状態: mainへマージ済み・originへpush済み・GitHub Pagesへdeploy済み・Round1B未着手
 - Round1A実装コミット(`uiux-round1a`ブランチ): `a6d2cdc`〜`4f34308`(7コミット、17ファイル・467行追加/53行削除)
 - mainマージコミット: `6d5dcb7`(`--no-ff`)
 - 報告書更新コミット: `18cb2a9`
+- 公開版検証・報告書更新コミット: `0d8eed3`
 
 ## 変更ファイル
 - `js/config.js`: `CONFIG.regulations`(`{id,label}`静的リスト、M-A/M-B)を追加
