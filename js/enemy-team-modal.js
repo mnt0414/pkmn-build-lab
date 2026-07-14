@@ -14,6 +14,8 @@ import {
 import { escapeHtml, safeHttpsUrl } from "./utils.js";
 import { openSpeciesPicker } from "./species-picker.js";
 import { getPokedex, getMoves, getLearnsets } from "./static-data.js";
+import { showToast } from "./toast.js";
+import { showConfirmDialog } from "./confirm-dialog.js";
 
 const POKEMON_SLOT_COUNT = 6;
 const MOVE_SLOT_COUNT = 4;
@@ -141,7 +143,7 @@ export function openEnemyTeamModal({ mode, team = null, onSaved }) {
     .then(([pokedex, movesData, learnsetsData]) => renderModal(pokedex, movesData, learnsetsData))
     .catch((err) => {
       console.error("[enemy-team-modal] データ読込失敗", err);
-      alert("データの読込に失敗しました");
+      showToast("データの読込に失敗しました", { type: "error" });
     });
 
   function renderModal(pokedex, movesData, learnsetsData) {
@@ -277,21 +279,26 @@ export function openEnemyTeamModal({ mode, team = null, onSaved }) {
 
     const initialSnapshot = collectSnapshot();
 
-    function confirmDiscardIfDirty() {
+    async function confirmDiscardIfDirty() {
       if (collectSnapshot() === initialSnapshot) return true;
-      return confirm("入力内容を保存せずに閉じます。よろしいですか？");
+      return await showConfirmDialog({ message: "入力内容を保存せずに閉じます。よろしいですか？", danger: true });
     }
 
-    dialog.querySelector("#enemy-team-btn-cancel").addEventListener("click", () => {
-      if (!confirmDiscardIfDirty()) return;
+    dialog.querySelector("#enemy-team-btn-cancel").addEventListener("click", async () => {
+      if (!(await confirmDiscardIfDirty())) return;
       dialog.close();
     });
 
     // dialogEl(シングルトン)は開くたびにinnerHTMLを差し替えて再利用するため、
     // "cancel"イベントリスナーは前回分を明示的に外してから貼り直す(party-build-modal.jsと同じ対策)。
+    // cancel(Escキー等)はハンドラ内で同期的にpreventDefault()しないとネイティブクローズを止められないため、
+    // 先にpreventDefault()してから非同期確認を行い、trueならdialog.close()を手動で呼ぶ。
     if (currentCancelHandler) dialog.removeEventListener("cancel", currentCancelHandler);
     currentCancelHandler = (e) => {
-      if (!confirmDiscardIfDirty()) e.preventDefault();
+      e.preventDefault();
+      confirmDiscardIfDirty().then((ok) => {
+        if (ok) dialog.close();
+      });
     };
     dialog.addEventListener("cancel", currentCancelHandler);
 

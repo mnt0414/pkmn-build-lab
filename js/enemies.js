@@ -5,6 +5,7 @@ import { put, del, setArchived } from "./db.js";
 import { getPokedex } from "./static-data.js";
 import { openEnemyTeamModal } from "./enemy-team-modal.js";
 import { loadPresets, loadPresetOverrides, savePresetOverride, applyOverrides, loadUserTeams } from "./enemies-data.js";
+import { showConfirmDialog } from "./confirm-dialog.js";
 
 // 形式・レギュレーションフィルタ。プリセット・ユーザー構築どちらのteam配列にも使える共通関数。
 export function filterEnemyTeams(teams, { battleFormat = "all", regulation = "all" } = {}) {
@@ -234,7 +235,11 @@ export async function renderEnemies(el) {
     el.querySelectorAll("[data-delete-id]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.dataset.deleteId;
-        if (!confirm("この仮想敵構築を完全に削除します。よろしいですか？（元に戻せません）")) return;
+        const ok = await showConfirmDialog({
+          message: "この仮想敵構築を完全に削除します。よろしいですか？（元に戻せません）",
+          danger: true,
+        });
+        if (!ok) return;
         await del("enemyTeams", id);
         await refreshUserTeams();
         draw();
