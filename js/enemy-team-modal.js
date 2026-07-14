@@ -5,6 +5,7 @@ import { put } from "./db.js";
 import {
   NATURES,
   STAT_KEYS,
+  STAT_LABELS,
   SP_MAX_PER_STAT,
   SP_MAX_TOTAL,
   validateStatPoints,
@@ -20,7 +21,6 @@ import { showConfirmDialog } from "./confirm-dialog.js";
 
 const POKEMON_SLOT_COUNT = 6;
 const MOVE_SLOT_COUNT = 4;
-const STAT_LABELS = { hp: "HP", atk: "こうげき", def: "ぼうぎょ", spa: "とくこう", spd: "とくぼう", spe: "すばやさ" };
 
 let dialogEl = null;
 let currentCancelHandler = null;

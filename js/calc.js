@@ -410,7 +410,7 @@ function openCalcPicker({ pokedex, movesData, learnsets }) {
       <div class="dialog-tabs">
         <button type="button" class="dialog-tab is-active" data-tab="party">自分のパーティから</button>
         <button type="button" class="dialog-tab" data-tab="enemy">仮想敵から</button>
-        <button type="button" class="dialog-tab" data-tab="new">新種族から</button>
+        <button type="button" class="dialog-tab" data-tab="new">新しいポケモンから</button>
       </div>
       <div class="modal-body" id="calc-picker-body"></div>
       <div class="modal-footer">
@@ -475,10 +475,10 @@ function openCalcPicker({ pokedex, movesData, learnsets }) {
 
       function render() {
         const entry = tempSpeciesId ? pokedex[tempSpeciesId] : null;
-        const speciesLabel = entry ? entry.nameJa ?? entry.name : "種族を検索して選択";
+        const speciesLabel = entry ? entry.nameJa ?? entry.name : "ポケモンを検索して選択";
         bodyEl.innerHTML = `
           <div class="field">
-            <label>種族</label>
+            <label>ポケモン</label>
             <button type="button" class="btn" id="calc-new-pick-species">${escapeHtml(speciesLabel)}</button>
           </div>
           ${entry ? newSpeciesFormHtml(entry, tempSpeciesId, learnsets, movesData) : ""}
@@ -544,7 +544,7 @@ function openCalcPicker({ pokedex, movesData, learnsets }) {
           finish({
             build: tempBuild,
             pokedexEntry: pokedex[tempSpeciesId],
-            sourceLabel: "新種族（一時設定・未保存）",
+            sourceLabel: "新しいポケモン（一時設定・未保存）",
             sourceFormat: null,
             canEdit: false,
           });

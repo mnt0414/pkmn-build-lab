@@ -294,9 +294,9 @@ export async function renderParty(el) {
       <button class="btn" id="btn-edit-team">編集</button>
     </div>
     <section class="card">
-      <h2>選出6匹</h2>
+      <h2>構築メンバー</h2>
       ${warningBannerHtml(warnings, pokedex)}
-      <p class="placeholder">${escapeHtml(selectedTeam.name || "無題の構築")}（${selectedTeam.battleFormat === "double" ? "ダブル" : "シングル"} / ${escapeHtml(selectedTeam.regulation || "未設定")}） ${selectedTeam.selectedBuildIds.length}/6匹選出</p>
+      <p class="placeholder">${escapeHtml(selectedTeam.name || "無題の構築")}（${selectedTeam.battleFormat === "double" ? "ダブル" : "シングル"} / ${escapeHtml(selectedTeam.regulation || "未設定")}） 構築メンバー ${selectedTeam.selectedBuildIds.length}/6匹</p>
       ${memberSectionHtml(selectedTeam, buildsById, pokedex)}
     </section>
     <section class="card">

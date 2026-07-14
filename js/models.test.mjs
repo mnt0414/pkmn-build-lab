@@ -17,7 +17,7 @@ test("validateStatPoints: 正常系（各32以下・合計66以下）はvalid", 
 test("validateStatPoints: 単体33超過はエラー", () => {
   const result = validateStatPoints({ hp: 33, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 });
   assert.equal(result.valid, false);
-  assert.ok(result.errors.some((e) => e.includes("hp")));
+  assert.ok(result.errors.some((e) => e.includes("HP")));
 });
 
 test("validateStatPoints: 合計67超過はエラー", () => {
