@@ -1,6 +1,6 @@
 // 種族検索ダイアログ。mode: "single"(デフォルト・単一選択) | "multi"(複数選択、3.3で苦手なポケモン用に追加)。
 import { getPokedex } from "./static-data.js";
-import { escapeHtml, searchByName } from "./utils.js";
+import { escapeHtml, searchPokemon } from "./utils.js";
 import { spriteImgHtml } from "./pokemon-identity.js";
 import { CONFIG } from "./config.js";
 
@@ -64,7 +64,7 @@ function renderMultiResults(matched, selectedIds) {
 function renderResults(pokedex, query, mode, selectedIds) {
   const q = query.trim();
   if (!q) return '<p class="placeholder">検索してください</p>';
-  const allMatched = searchByName(Object.values(pokedex), q, displayName);
+  const allMatched = searchPokemon(Object.values(pokedex), q);
   if (allMatched.length === 0) return '<p class="placeholder">該当するポケモンが見つかりません</p>';
   const matched = allMatched.slice(0, MAX_RESULTS);
   const remaining = allMatched.length - matched.length;

@@ -38,3 +38,27 @@ export function searchByName(items, query, getName) {
   }
   return [...starts, ...rest];
 }
+
+// query(ひらがな入力可)でpokedexエントリ(nameJa/name/id/num)を検索する。優先順位:
+// 1) 図鑑番号(num)の完全一致 → 2) speciesId(id)の完全一致 → 3) 日本語名/英語名の前方一致 → 4) 日本語名/英語名/speciesIdの部分一致
+// queryが空文字なら空配列を返す。
+export function searchPokemon(items, query) {
+  const raw = query.trim();
+  if (!raw) return [];
+  const q = hiraganaToKatakana(raw.toLowerCase());
+  const qNum = /^\d+$/.test(raw) ? Number(raw) : null;
+  const exactNum = [];
+  const exactId = [];
+  const starts = [];
+  const rest = [];
+  for (const item of items) {
+    const nameJa = hiraganaToKatakana(String(item.nameJa ?? "").toLowerCase());
+    const nameEn = String(item.name ?? "").toLowerCase();
+    const id = String(item.id ?? "").toLowerCase();
+    if (qNum !== null && item.num === qNum) exactNum.push(item);
+    else if (id === q) exactId.push(item);
+    else if (nameJa.startsWith(q) || nameEn.startsWith(q)) starts.push(item);
+    else if (nameJa.includes(q) || nameEn.includes(q) || id.includes(q)) rest.push(item);
+  }
+  return [...exactNum, ...exactId, ...starts, ...rest];
+}
